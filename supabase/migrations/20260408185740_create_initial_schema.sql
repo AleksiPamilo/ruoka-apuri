@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS proteins (
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
   label text NOT NULL,
   icon text,
-  category text NOT NULL CHECK (category IN ('meat', 'fish', 'plant_based', 'other')),
+  category text NOT NULL CHECK (category IN ('meat', 'fish', 'plant_based', 'other'))
 );
 
 CREATE TABLE IF NOT EXISTS recipes (
