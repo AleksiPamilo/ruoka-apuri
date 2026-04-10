@@ -6,4 +6,5 @@ export interface Recipe {
     rating?: number;
     lastSuggested?: Date | null;
     isMealPrep: boolean;
+    servings_per_batch: number;
 }
