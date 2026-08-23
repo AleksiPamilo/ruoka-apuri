@@ -75,19 +75,16 @@ export default function RecipeGeneratorScreen() {
         const proteinRecipes = availableRecipes.filter((recipe) => recipe.proteinId === proteinId);
         const candidates = proteinRecipes.length > 0 ? proteinRecipes : availableRecipes;
 
-        // 1. Prefer candidate recipes not yet used in this plan
         const unusedCandidates = candidates.filter((r) => !selected.some((s) => s.id === r.id));
         let chosenRecipe: Recipe;
 
         if (unusedCandidates.length > 0) {
           chosenRecipe = unusedCandidates[Math.floor(Math.random() * unusedCandidates.length)];
         } else {
-          // 2. Check if any unused recipe exists across all available recipes
           const unusedOverall = availableRecipes.filter((r) => !selected.some((s) => s.id === r.id));
           if (unusedOverall.length > 0) {
             chosenRecipe = unusedOverall[Math.floor(Math.random() * unusedOverall.length)];
           } else {
-            // 3. Fallback: all recipes have been used. Pick the one used LEAST recently (maximum gap/alternating pattern)
             let oldestLastIndex = Infinity;
             chosenRecipe = candidates[0];
 
