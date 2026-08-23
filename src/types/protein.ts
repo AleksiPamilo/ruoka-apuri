@@ -5,6 +5,6 @@ export type ProteinCategory = typeof PROTEIN_CATEGORIES[number];
 export interface Protein {
     id: string;
     label: string;
-    icon: string;
+    icon: string | null;
     category: ProteinCategory;
 }
