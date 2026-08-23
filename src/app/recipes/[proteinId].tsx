@@ -8,6 +8,8 @@ import { getSuggestedRecipes } from '../../services/recipeService';
 import { Recipe } from '../../types/recipe';
 import { useAppTheme } from '../../theme/AppThemeProvider';
 
+import { DEFAULT_SERVINGS_KEY } from '../(tabs)/settings';
+
 const SAVED_PLAN_KEY = 'ruoka-apuri.saved-weekly-plan';
 const dayLabels = ['Maanantai', 'Tiistai', 'Keskiviikko', 'Torstai', 'Perjantai', 'Lauantai', 'Sunnuntai'];
 
@@ -18,12 +20,25 @@ export default function RecipeGeneratorScreen() {
   const router = useRouter();
   const { colors } = useAppTheme();
   
-  const [diners, setDiners] = useState(1);
+  const [diners, setDiners] = useState(4);
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState<Recipe[]>([]);
   const [mealPrepOnly, setMealPrepOnly] = useState(false);
   const [savedPlan, setSavedPlan] = useState<Recipe[] | null>(null);
   const [showWeeklyPlan, setShowWeeklyPlan] = useState(false);
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      const storedServings = await AsyncStorage.getItem(DEFAULT_SERVINGS_KEY);
+      if (storedServings) {
+        const val = parseInt(storedServings, 10);
+        if (!isNaN(val) && val > 0) {
+          setDiners(val);
+        }
+      }
+    };
+    loadSettings();
+  }, []);
 
   const loadDailyIdeas = async () => {
     setLoading(true);
