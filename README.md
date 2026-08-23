@@ -3,11 +3,19 @@
 A mobile app for weekly meal planning, recipe suggestions, and meal prep management.
 
 <p align="center">
-  <img src="docs/images/etusivu_light.png" width="22%" alt="Etusivu 1" />&nbsp;
-  <img src="docs/images/kalenteri_light.png" width="22%" alt="Kalenteri 1" />&nbsp;&nbsp;&nbsp;
-  <img src="docs/images/etusivu_dark.png" width="22%" alt="Etusivu 2" />&nbsp;
-  <img src="docs/images/kalenteri_dark.png" width="22%" alt="Kalenteri 2" />
+  <img src="docs/images/ruoka.gif" width="280" alt="Ruoka-apuri Demo" />
 </p>
+
+<details>
+  <summary>📸 <b>View screenshots (Light & Dark theme)</b></summary>
+  <br />
+  <p align="center">
+    <img src="docs/images/etusivu_light.png" width="22%" alt="Etusivu 1" />&nbsp;
+    <img src="docs/images/kalenteri_light.png" width="22%" alt="Kalenteri 1" />&nbsp;&nbsp;&nbsp;
+    <img src="docs/images/etusivu_dark.png" width="22%" alt="Etusivu 2" />&nbsp;
+    <img src="docs/images/kalenteri_dark.png" width="22%" alt="Kalenteri 2" />
+  </p>
+</details>
 
 ### Features
 - **Protein-Based Suggestions:** Discover recipes tailored to selected protein sources.
