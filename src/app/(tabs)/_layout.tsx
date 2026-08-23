@@ -1,21 +1,32 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useAppTheme } from '../../theme/AppThemeProvider';
 
 export default function TabsLayout() {
+    const { colors } = useAppTheme();
+
     return (
         <Tabs
             screenOptions={{
-                tabBarActiveTintColor: '#007AFF',
-                tabBarInactiveTintColor: '#8E8E93',
+                tabBarActiveTintColor: colors.primary,
+                tabBarInactiveTintColor: colors.tabInactive,
                 tabBarStyle: {
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: colors.card,
                     borderTopWidth: 0.5,
-                    borderTopColor: 'D1D1D6'
+                    borderTopColor: colors.border
                 },
                 headerShown: true,
+                headerStyle: {
+                    backgroundColor: colors.background,
+                },
                 headerTitleStyle: {
-                    fontWeight: '600'
-                }
+                    fontWeight: '600',
+                    color: colors.text,
+                },
+                headerTintColor: colors.primary,
+                sceneStyle: {
+                    backgroundColor: colors.background,
+                },
             }}
             >
                 <Tabs.Screen
@@ -25,6 +36,16 @@ export default function TabsLayout() {
                         tabBarLabel: 'Koti',
                         tabBarIcon: ({ color, size }) => (
                             <Ionicons name="restaurant-outline" color={color} size={size} />
+                        )
+                    }}
+                />
+                <Tabs.Screen
+                    name="calendar"
+                    options={{
+                        title: 'Kalenteri',
+                        tabBarLabel: 'Kalenteri',
+                        tabBarIcon: ({ color, size }) => (
+                            <Ionicons name="calendar-outline" color={color} size={size} />
                         )
                     }}
                 />

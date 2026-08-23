@@ -1,14 +1,25 @@
 import { Stack } from 'expo-router';
+import { AppThemeProvider, useAppTheme } from '../theme/AppThemeProvider';
 
-export default function RootLayout() {
+function RootNavigator() {
+    const { colors } = useAppTheme();
+
     return (
         <Stack
             screenOptions={{
                 headerShown: false,
-                contentStyle: { backgroundColor: '#F2F2F7' }
+                contentStyle: { backgroundColor: colors.background }
             }}
         >
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         </Stack>
-    )
+    );
+}
+
+export default function RootLayout() {
+    return (
+        <AppThemeProvider>
+            <RootNavigator />
+        </AppThemeProvider>
+    );
 }
