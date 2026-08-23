@@ -7,4 +7,6 @@ export interface Recipe {
     lastSuggested?: Date | null;
     isMealPrep: boolean;
     servings_per_batch: number;
+    planStartDay?: number;
+    lastsDays?: number;
 }
