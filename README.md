@@ -1,6 +1,6 @@
 # Ruoka-apuri
 
-Mobiilisovellus viikon ateriasuunnitteluun ja reseptien hallintaan.
+A mobile app for weekly meal planning, recipe suggestions, and meal prep management.
 
 <p align="center">
   <img src="docs/images/etusivu_light.png" width="22%" alt="Etusivu 1" />&nbsp;
@@ -9,34 +9,36 @@ Mobiilisovellus viikon ateriasuunnitteluun ja reseptien hallintaan.
   <img src="docs/images/kalenteri_dark.png" width="22%" alt="Kalenteri 2" />
 </p>
 
-### Ominaisuudet
-- **Reseptisuositukset:** Ehdotukset valittujen proteiinilähteiden mukaan.
-- **Viikkosuunnitelma:** 7 päivän ateriaehdotukset ilman toistoa.
-- **Meal Prep & Kalenteri:** Reseptien rytmitys ja tallennus viikkonäkymään.
+### Features
+- **Protein-Based Suggestions:** Discover recipes tailored to selected protein sources.
+- **Weekly Planner:** Automated 7-day meal schedules without repetitive meals.
+- **Meal Prep & Calendar:** Organize, schedule, and track meals in a clean calendar view.
+- **Theme Support:** Fully functional light and dark modes.
+- **Localization:** Finnish UI
 
-### Teknologiat
+### Tech Stack
 React Native (Expo Router) · TypeScript · Supabase
 
 ---
 
-### Asennus & kehitys
+### Getting Started
 
-1. **Kloonaa repo ja asenna riippuvuudet**
+1. **Clone the repository and install dependencies**
    ```bash
    git clone https://github.com/AleksiPamilo/ruoka-apuri.git
    cd ruoka-apuri
    pnpm install
    ```
 
-2. **Ympäristömuuttujat**
-Luo `.env`-tiedosto juureen:
+2. **Environment variables**
+   Create a `.env` file in the root directory:
    ```env
-   EXPO_PUBLIC_SUPABASE_URL=oma_url
-   EXPO_PUBLIC_SUPABASE_ANON_KEY=oma_avain
+   EXPO_PUBLIC_SUPABASE_URL=your_project_url
+   EXPO_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
    ```
 
 
-3. **Käynnistä**
+3. **Run the app**
    ```bash
    pnpm start
    ```
