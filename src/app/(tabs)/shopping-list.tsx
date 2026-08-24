@@ -15,6 +15,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -249,32 +250,33 @@ export default function ShoppingListScreen() {
   const checkedItems = items.filter((i) => i.checked);
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <View style={styles.headerRow}>
-          <View style={styles.headerTextContainer}>
-            <Text style={[styles.title, { color: colors.text }]}>Ostoslista</Text>
-            <Text style={[styles.subtitle, { color: colors.mutedText }]}>
-              {items.length === 0
-                ? 'Ei tuotteita listalla'
-                : `${checkedItems.length} / ${items.length} tuotetta kerätty`}
-            </Text>
+    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.background }]}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+          <View style={styles.titleRow}>
+            <View style={styles.titleTextContainer}>
+              <Text style={[styles.title, { color: colors.text }]}>Ostoslista</Text>
+              <Text style={[styles.subtitle, { color: colors.mutedText }]}>
+                {items.length === 0
+                  ? 'Ei tuotteita listalla'
+                  : `${checkedItems.length} / ${items.length} tuotetta kerätty`}
+              </Text>
+            </View>
+            <Pressable
+              style={[styles.headerMoreBtn, { backgroundColor: colors.card }]}
+              onPress={() => {
+                optionsPanY.setValue(0);
+                setOptionsMenuVisible(true);
+              }}
+              hitSlop={8}
+            >
+              <Ionicons name="ellipsis-horizontal" size={18} color={colors.text} />
+            </Pressable>
           </View>
-          <Pressable
-            style={[styles.headerMoreBtn, { backgroundColor: colors.card }]}
-            onPress={() => {
-              optionsPanY.setValue(0);
-              setOptionsMenuVisible(true);
-            }}
-            hitSlop={8}
-          >
-            <Ionicons name="ellipsis-horizontal" size={18} color={colors.text} />
-          </Pressable>
-        </View>
 
         <View style={[styles.quickAddCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <TextInput
@@ -856,21 +858,22 @@ export default function ShoppingListScreen() {
           </View>
         </View>
       </Modal>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContent: { padding: 20, paddingBottom: 40 },
-  headerRow: {
+  scrollContent: { paddingTop: 28, paddingHorizontal: 20, paddingBottom: 40 },
+  titleRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 20,
   },
-  headerTextContainer: { flex: 1 },
-  title: { fontSize: 28, fontWeight: '700', marginBottom: 4 },
+  titleTextContainer: { flex: 1 },
+  title: { fontSize: 28, fontWeight: '700', marginBottom: 6 },
   subtitle: { fontSize: 14 },
   headerMoreBtn: {
     width: 36,
@@ -878,7 +881,6 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 4,
   },
   quickAddCard: {
     flexDirection: 'row',

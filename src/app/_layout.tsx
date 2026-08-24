@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Platform, useWindowDimensions, View, StyleSheet, Pressable, Text } from 'react-native';
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { AppThemeProvider, useAppTheme } from '../theme/AppThemeProvider';
 import InstallGuideView from '../components/InstallGuideView';
@@ -21,50 +22,84 @@ function RootNavigator() {
     }
   }, []);
 
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      document.documentElement.style.backgroundColor = colors.background;
+      document.body.style.backgroundColor = colors.background;
+
+      let metaThemeColor = document.querySelector('meta[name="theme-color"]');
+      if (!metaThemeColor) {
+        metaThemeColor = document.createElement('meta');
+        metaThemeColor.setAttribute('name', 'theme-color');
+        document.head.appendChild(metaThemeColor);
+      }
+      metaThemeColor.setAttribute('content', colors.background);
+
+      let metaAppleStatus = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+      if (!metaAppleStatus) {
+        metaAppleStatus = document.createElement('meta');
+        metaAppleStatus.setAttribute('name', 'apple-mobile-web-app-status-bar-style');
+        document.head.appendChild(metaAppleStatus);
+      }
+      metaAppleStatus.setAttribute('content', isDark ? 'black-translucent' : 'default');
+    }
+  }, [colors.background, isDark]);
+
   const isWeb = Platform.OS === 'web';
   const isWideWeb = isWeb && width >= 768;
 
   if (isWeb && !isStandalone && !showApp) {
-    return <InstallGuideView onContinueToApp={() => setShowApp(true)} />;
+    return (
+      <>
+        <StatusBar style={isDark ? 'light' : 'dark'} backgroundColor={colors.background} />
+        <InstallGuideView onContinueToApp={() => setShowApp(true)} />
+      </>
+    );
   }
 
   if (isWideWeb) {
     return (
-      <View style={[styles.desktopOuterContainer, { backgroundColor: isDark ? '#09090b' : '#e4e4e7' }]}>
-        {!isStandalone && (
-          <View style={styles.desktopTopBar}>
-            <Pressable
-              style={[styles.backToGuideBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-              onPress={() => setShowApp(false)}
+      <>
+        <StatusBar style={isDark ? 'light' : 'dark'} backgroundColor={colors.background} />
+        <View style={[styles.desktopOuterContainer, { backgroundColor: isDark ? '#09090b' : '#e4e4e7' }]}>
+          {!isStandalone && (
+            <View style={styles.desktopTopBar}>
+              <Pressable
+                style={[styles.backToGuideBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+                onPress={() => setShowApp(false)}
+              >
+                <Ionicons name="arrow-back" size={16} color={colors.text} />
+                <Text style={[styles.backToGuideText, { color: colors.text }]}>Takaisin asennusohjeisiin</Text>
+              </Pressable>
+            </View>
+          )}
+          <View style={[styles.phoneFrame, { backgroundColor: colors.background, borderColor: colors.border }]}>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: colors.background }
+              }}
             >
-              <Ionicons name="arrow-back" size={16} color={colors.text} />
-              <Text style={[styles.backToGuideText, { color: colors.text }]}>Takaisin asennusohjeisiin</Text>
-            </Pressable>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            </Stack>
           </View>
-        )}
-        <View style={[styles.phoneFrame, { backgroundColor: colors.background, borderColor: colors.border }]}>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: colors.background }
-            }}
-          >
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          </Stack>
         </View>
-      </View>
+      </>
     );
   }
 
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        contentStyle: { backgroundColor: colors.background }
-      }}
-    >
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-    </Stack>
+    <>
+      <StatusBar style={isDark ? 'light' : 'dark'} backgroundColor={colors.background} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: colors.background }
+        }}
+      >
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      </Stack>
+    </>
   );
 }
 

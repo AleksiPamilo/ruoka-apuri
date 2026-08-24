@@ -1,10 +1,11 @@
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Pressable, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Protein, ProteinCategory } from '../../types/protein';
 import { useEffect, useState, useCallback } from 'react';
 import { getProteinCategories, getProteins } from '../../services/recipeService';
 import ProteinCard  from '../../components/ProteinCard';
-import { Stack, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useAppTheme } from '../../theme/AppThemeProvider';
 
 export default function HomeScreen() {
@@ -41,17 +42,7 @@ export default function HomeScreen() {
 
   if (proteins.length === 0) {
     return (
-      <View style={[styles.container, styles.center, { backgroundColor: colors.background, padding: 24 }]}>
-        <Stack.Screen
-          options={{
-            headerLargeTitle: true,
-            headerLargeTitleShadowVisible: false,
-            headerStyle: { backgroundColor: colors.background },
-            headerLargeTitleStyle: { color: colors.text },
-            headerTintColor: colors.primary,
-            title: 'Ruoka-apuri'
-          }}
-        />
+      <SafeAreaView edges={['top']} style={[styles.container, styles.center, { backgroundColor: colors.background, padding: 24 }]}>
         <Ionicons name="alert-circle-outline" size={48} color={colors.mutedText} />
         <Text style={[styles.introTitle, { color: colors.text, textAlign: 'center', marginTop: 12 }]}>
           Proteiineja ei löytynyt
@@ -65,7 +56,7 @@ export default function HomeScreen() {
         >
           <Text style={styles.generateButtonText}>Yritä uudelleen</Text>
         </Pressable>
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -101,17 +92,7 @@ export default function HomeScreen() {
   ];
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}> 
-      <Stack.Screen
-        options={{
-          headerLargeTitle: true,
-          headerLargeTitleShadowVisible: false,
-          headerStyle: { backgroundColor: colors.background },
-          headerLargeTitleStyle: { color: colors.text },
-          headerTintColor: colors.primary,
-          title: 'Ruoka-apuri'
-        }}
-      />
+    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.background }]}>
       <FlatList
         data={visibleProteins}
         keyExtractor={(item) => item.id}
@@ -119,7 +100,7 @@ export default function HomeScreen() {
         columnWrapperStyle={styles.column}
         contentContainerStyle={styles.list}
         ListHeaderComponent={(
-          <View>
+          <View style={styles.titleRow}>
             <Text style={[styles.introTitle, { color: colors.text }]}>Valitse proteiinit</Text>
             <Text style={[styles.introText, { color: colors.mutedText }]}>Luo resepti-ideoita päivälle tai suunnittele koko viikko.</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
@@ -169,7 +150,7 @@ export default function HomeScreen() {
           <Text style={styles.generateButtonText}>Suunnittele ateriat</Text>
         </Pressable>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -178,26 +159,29 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   list: {
-    paddingTop: 10,
+    paddingTop: 28,
     paddingHorizontal: 20,
     paddingBottom: 24,
+  },
+  titleRow: {
+    marginBottom: 4,
   },
   column: {
     gap: 12,
     marginBottom: 12,
   },
   introTitle: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: '700',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   introText: {
     fontSize: 14,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   filters: {
     gap: 8,
-    paddingBottom: 18,
+    paddingBottom: 20,
   },
   filter: {
     borderRadius: 18,

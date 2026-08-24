@@ -15,15 +15,7 @@ export default function TabsLayout() {
                     borderTopWidth: 0.5,
                     borderTopColor: colors.border
                 },
-                headerShown: true,
-                headerStyle: {
-                    backgroundColor: colors.background,
-                },
-                headerTitleStyle: {
-                    fontWeight: '600',
-                    color: colors.text,
-                },
-                headerTintColor: colors.primary,
+                headerShown: false,
                 sceneStyle: {
                     backgroundColor: colors.background,
                 },

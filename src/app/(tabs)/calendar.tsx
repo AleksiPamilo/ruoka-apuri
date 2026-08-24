@@ -1,7 +1,8 @@
 import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, Modal, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Recipe } from '../../types/recipe';
 import { useAppTheme } from '../../theme/AppThemeProvider';
@@ -260,24 +261,30 @@ export default function CalendarScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Stack.Screen
-        options={{
-          title: 'Kalenteri',
-          headerStyle: { backgroundColor: colors.background },
-          headerTitleStyle: { color: colors.text },
-          headerTintColor: colors.primary,
-          headerRight: () =>
-            editMode ? (
+    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.titleRow}>
+          <View style={styles.titleTextContainer}>
+            <Text style={[styles.title, { color: colors.text }]}>Kalenteri</Text>
+            <Text style={[styles.subtitle, { color: colors.mutedText }]}>
+              {editMode
+                ? `Valittu ${selectedKeys.length} / ${plan.length}`
+                : plan.length > 0
+                ? `${plan.length} tallennettua ateriaa`
+                : 'Tallennettu viikkosuunnitelma'}
+            </Text>
+          </View>
+          <View style={styles.headerRightContainer}>
+            {editMode ? (
               <Pressable
-                style={styles.headerTextBtn}
+                style={[styles.headerTextBtn, { backgroundColor: colors.primary }]}
                 onPress={() => {
                   setEditMode(false);
                   setSelectedKeys([]);
                 }}
                 hitSlop={8}
               >
-                <Text style={[styles.headerTextBtnLabel, { color: colors.primary }]}>Valmis</Text>
+                <Text style={styles.headerTextBtnLabel}>Valmis</Text>
               </Pressable>
             ) : (
               <Pressable
@@ -290,20 +297,7 @@ export default function CalendarScreen() {
               >
                 <Ionicons name="ellipsis-horizontal" size={18} color={colors.text} />
               </Pressable>
-            ),
-        }}
-      />
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.titleRow}>
-          <View style={styles.titleTextContainer}>
-            <Text style={[styles.title, { color: colors.text }]}>Viikon ateriat</Text>
-            <Text style={[styles.subtitle, { color: colors.mutedText }]}>
-              {editMode
-                ? `Valittu ${selectedKeys.length} / ${plan.length}`
-                : plan.length > 0
-                ? `${plan.length} tallennettua ateriaa`
-                : 'Tallennettu viikkosuunnitelma'}
-            </Text>
+            )}
           </View>
         </View>
 
@@ -692,35 +686,38 @@ export default function CalendarScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: 20, paddingBottom: 32 },
+  content: { paddingTop: 28, paddingHorizontal: 20, paddingBottom: 32 },
   titleRow: {
-    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 20,
   },
   titleTextContainer: {
     flex: 1,
   },
-  title: { fontSize: 28, fontWeight: '700', marginBottom: 4 },
+  title: { fontSize: 28, fontWeight: '700', marginBottom: 6 },
   subtitle: { fontSize: 14 },
   headerRightContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginRight: 16,
   },
   headerTextBtn: {
     paddingVertical: 6,
     paddingHorizontal: 12,
-    marginRight: 12,
+    borderRadius: 8,
   },
   headerTextBtnLabel: {
     fontSize: 15,
     fontWeight: '600',
+    color: '#FFFFFF',
   },
   headerMoreBtn: {
     width: 36,
@@ -728,7 +725,6 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
   },
   editToolbar: {
     flexDirection: 'row',

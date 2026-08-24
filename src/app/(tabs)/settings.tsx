@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Switch, Pressable } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppTheme } from '../../theme/AppThemeProvider';
-import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import packageJson from '../../../package.json';
@@ -33,15 +33,13 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Stack.Screen
-        options={{
-          title: 'Asetukset',
-          headerStyle: { backgroundColor: colors.background },
-          headerTitleStyle: { color: colors.text },
-          headerTintColor: colors.primary,
-        }}
-      />
+    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={styles.titleRow}>
+        <Text style={[styles.pageTitle, { color: colors.text }]}>Asetukset</Text>
+        <Text style={[styles.pageSubtitle, { color: colors.mutedText }]}>
+          Määritä sovelluksen ulkoasu ja annoskoko.
+        </Text>
+      </View>
 
       <View style={[styles.card, { backgroundColor: colors.card }]}>
         <View style={styles.cardHeader}>
@@ -87,12 +85,24 @@ export default function SettingsScreen() {
           <Text style={[styles.infoValue, { color: colors.text }]}>GNU GPLv3</Text>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, gap: 16 },
+  container: { flex: 1, paddingTop: 28, paddingHorizontal: 20, paddingBottom: 24, gap: 16 },
+  titleRow: {
+    marginBottom: 8,
+  },
+  pageTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  pageSubtitle: {
+    fontSize: 14,
+    lineHeight: 18,
+  },
   card: {
     borderRadius: 16,
     padding: 16,
