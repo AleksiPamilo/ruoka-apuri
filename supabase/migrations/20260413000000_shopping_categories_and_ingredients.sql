@@ -28,7 +28,7 @@ FROM (
     ('Nauta', '🥩', 'meat'),
     ('Kana', '🍗', 'meat'),
     ('Kala', '🐟', 'fish'),
-    ('Porsas', '🥓', 'meat'),
+    ('Possu', '🥓', 'meat'),
     ('Kasviproteiini & Tofu', '🌱', 'plant_based'),
     ('Kananmuna & Juusto', '🥚', 'other')
 ) AS val(label, icon, category)
