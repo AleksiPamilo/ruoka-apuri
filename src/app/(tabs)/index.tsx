@@ -1,33 +1,70 @@
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Pressable, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Protein, ProteinCategory } from '../../types/protein';
-import { useEffect, useState } from 'react';
-import { getProteins } from '../../services/recipeService';
+import { useEffect, useState, useCallback } from 'react';
+import { getProteinCategories, getProteins } from '../../services/recipeService';
 import ProteinCard  from '../../components/ProteinCard';
 import { Stack, useRouter } from 'expo-router';
 import { useAppTheme } from '../../theme/AppThemeProvider';
 
 export default function HomeScreen() {
   const [proteins, setProteins] = useState<Protein[]>([]);
+  const [categories, setCategories] = useState<ProteinCategory[]>([]);
   const [selectedProteins, setSelectedProteins] = useState<string[]>([]);
-  const [categoryFilter, setCategoryFilter] = useState<ProteinCategory | 'all'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const { colors } = useAppTheme();
 
-  useEffect(() => {
-    const fetchProteins = async () => {
-      const data = await getProteins();
-      setProteins(data);
-      setLoading(false);
-    };
-
-    fetchProteins();
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    const [proteinsData, categoriesData] = await Promise.all([
+      getProteins(),
+      getProteinCategories(),
+    ]);
+    setProteins(proteinsData);
+    setCategories(categoriesData);
+    setLoading(false);
   }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   if (loading) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="small" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (proteins.length === 0) {
+    return (
+      <View style={[styles.container, styles.center, { backgroundColor: colors.background, padding: 24 }]}>
+        <Stack.Screen
+          options={{
+            headerLargeTitle: true,
+            headerLargeTitleShadowVisible: false,
+            headerStyle: { backgroundColor: colors.background },
+            headerLargeTitleStyle: { color: colors.text },
+            headerTintColor: colors.primary,
+            title: 'Ruoka-apuri'
+          }}
+        />
+        <Ionicons name="alert-circle-outline" size={48} color={colors.mutedText} />
+        <Text style={[styles.introTitle, { color: colors.text, textAlign: 'center', marginTop: 12 }]}>
+          Proteiineja ei löytynyt
+        </Text>
+        <Text style={[styles.introText, { color: colors.mutedText, textAlign: 'center', marginTop: 4, marginBottom: 16 }]}>
+          Tietokannasta ei löytynyt proteiinivaihtoehtoja tai yhteyttä ei saatu muodostettua.
+        </Text>
+        <Pressable
+          style={[styles.generateButton, { backgroundColor: colors.primary, paddingHorizontal: 24 }]}
+          onPress={fetchData}
+        >
+          <Text style={styles.generateButtonText}>Yritä uudelleen</Text>
+        </Pressable>
       </View>
     );
   }
@@ -58,12 +95,9 @@ export default function HomeScreen() {
     ? proteins
     : proteins.filter((protein) => protein.category === categoryFilter);
 
-  const categoryFilters: { label: string; value: ProteinCategory | 'all' }[] = [
+  const categoryFilters = [
     { label: 'Kaikki', value: 'all' },
-    { label: 'Liha', value: 'meat' },
-    { label: 'Kala', value: 'fish' },
-    { label: 'Kasvipohjainen', value: 'plant_based' },
-    { label: 'Muu', value: 'other' },
+    ...categories.map((c) => ({ label: c.label, value: c.id })),
   ];
 
   return (

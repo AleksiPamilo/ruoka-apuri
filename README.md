@@ -1,6 +1,6 @@
 # Ruoka-apuri
 
-A mobile app for weekly meal planning, recipe suggestions, and meal prep management.
+A mobile app for weekly meal planning, recipe suggestions, meal prep management, and smart grocery shopping.
 
 <p align="center">
   <img src="docs/images/ruoka.gif" width="280" alt="Ruoka-apuri Demo" />
@@ -19,10 +19,14 @@ A mobile app for weekly meal planning, recipe suggestions, and meal prep managem
 
 ### Features
 - **Protein-Based Suggestions:** Discover recipes tailored to selected protein sources.
-- **Weekly Planner:** Automated 7-day meal schedules without repetitive meals.
-- **Meal Prep & Calendar:** Organize, schedule, and track meals in a clean calendar view.
+- **Weekly Planner & Calendar:** Automated 7-day meal schedules, slot replacement, and custom plan templates.
+- **Smart Shopping List (Ostoslista):** Automated ingredient aggregation from active meals, custom item entry, supermarket aisle categorization, and native sharing.
+- **Meal Prep Management:** Schedule batch-cooked meals across multiple days.
 - **Theme Support:** Fully functional light and dark modes.
 - **Localization:** Finnish UI
+
+> [!NOTE]
+> Demo recipes and sample data in this project were generated with AI.
 
 ### Tech Stack
 React Native (Expo Router) · TypeScript · Supabase
@@ -44,7 +48,6 @@ React Native (Expo Router) · TypeScript · Supabase
    EXPO_PUBLIC_SUPABASE_URL=your_project_url
    EXPO_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
    ```
-
 
 3. **Run the app**
    ```bash

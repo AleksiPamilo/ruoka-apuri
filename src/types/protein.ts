@@ -1,10 +1,13 @@
-
-export const PROTEIN_CATEGORIES = ['meat', 'fish', 'plant_based', 'other'] as const;
-export type ProteinCategory = typeof PROTEIN_CATEGORIES[number];
+export interface ProteinCategory {
+    id: string;
+    label: string;
+    sort_order?: number;
+}
 
 export interface Protein {
     id: string;
     label: string;
     icon: string | null;
-    category: ProteinCategory;
+    category: string;
+    sort_order?: number;
 }

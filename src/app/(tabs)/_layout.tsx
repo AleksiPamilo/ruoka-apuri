@@ -50,6 +50,16 @@ export default function TabsLayout() {
                     }}
                 />
                 <Tabs.Screen
+                    name="shopping-list"
+                    options={{
+                        title: 'Ostoslista',
+                        tabBarLabel: 'Ostoslista',
+                        tabBarIcon: ({ color, size }) => (
+                            <Ionicons name="cart-outline" color={color} size={size} />
+                        )
+                    }}
+                />
+                <Tabs.Screen
                     name="settings"
                     options={{
                         title: 'Asetukset',
