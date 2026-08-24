@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { getRecipeById, updateRecipeRating } from '../../services/recipeService';
 import { Recipe, IngredientItem } from '../../types/recipe';
 import { useAppTheme } from '../../theme/AppThemeProvider';
+
+const SAVED_PLAN_KEY = 'ruoka-apuri.saved-weekly-plan';
+const dayLabels = ['Maanantai', 'Tiistai', 'Keskiviikko', 'Torstai', 'Perjantai', 'Lauantai', 'Sunnuntai'];
+const shortDayLabels = ['Ma', 'Ti', 'Ke', 'To', 'Pe', 'La', 'Su'];
 
 export default function RecipeScreen() {
   const { recipeId } = useLocalSearchParams<{ recipeId: string }>();
@@ -17,6 +22,7 @@ export default function RecipeScreen() {
   const [checkedIngredients, setCheckedIngredients] = useState<Record<number, boolean>>({});
   const [completedSteps, setCompletedSteps] = useState<Record<number, boolean>>({});
   const [userRating, setUserRating] = useState<number>(0);
+  const [addedDayFeedback, setAddedDayFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     const loadRecipe = async () => {
@@ -32,6 +38,49 @@ export default function RecipeScreen() {
 
     loadRecipe();
   }, [recipeId]);
+
+  const handleAddRecipeToDay = async (dayIndex: number) => {
+    if (!recipe) return;
+    try {
+      const storedPlan = await AsyncStorage.getItem(SAVED_PLAN_KEY);
+      let currentPlanRecipes: Recipe[] = [];
+      let currentProteinIds: string[] = [];
+
+      if (storedPlan) {
+        const parsed = JSON.parse(storedPlan);
+        if (Array.isArray(parsed)) {
+          currentPlanRecipes = parsed;
+        } else {
+          currentPlanRecipes = parsed.recipes || [];
+          currentProteinIds = parsed.proteinIds || [];
+        }
+      }
+
+      const lastsDays = Math.max(1, Math.min(7 - dayIndex, Math.floor((recipe.servings_per_batch || 4) / servings)));
+      const newEntry: Recipe = {
+        ...recipe,
+        planStartDay: dayIndex,
+        lastsDays,
+      };
+
+      const filtered = currentPlanRecipes.filter((r, idx) => (r.planStartDay ?? idx) !== dayIndex);
+      const updatedList = [...filtered, newEntry].sort(
+        (a, b) => (a.planStartDay ?? 0) - (b.planStartDay ?? 0)
+      );
+
+      await AsyncStorage.setItem(
+        SAVED_PLAN_KEY,
+        JSON.stringify({ proteinIds: currentProteinIds, recipes: updatedList })
+      );
+
+      setAddedDayFeedback(dayLabels[dayIndex]);
+      setTimeout(() => {
+        setAddedDayFeedback(null);
+      }, 2500);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const baseServings = recipe?.servings_per_batch || 4;
   const scaleFactor = servings / baseServings;
@@ -115,6 +164,33 @@ export default function RecipeScreen() {
                   </Pressable>
                 ))}
               </View>
+            </View>
+          </View>
+
+          <View style={[styles.section, { backgroundColor: colors.card }]}>
+            <View style={styles.dayAssignHeader}>
+              <Text style={[styles.sectionHeaderTitle, { color: colors.text }]}>Lisää kalenteripäivälle</Text>
+              {addedDayFeedback && (
+                <View style={[styles.feedbackBadge, { backgroundColor: colors.success }]}>
+                  <Ionicons name="checkmark-circle" size={13} color="#FFFFFF" />
+                  <Text style={styles.feedbackText}>Lisätty: {addedDayFeedback}</Text>
+                </View>
+              )}
+            </View>
+            <View style={styles.dayChipsRow}>
+              {shortDayLabels.map((label, dayIdx) => (
+                <Pressable
+                  key={label}
+                  style={({ pressed }) => [
+                    styles.dayChip,
+                    { backgroundColor: colors.background, borderColor: colors.border },
+                    pressed && styles.pressed,
+                  ]}
+                  onPress={() => handleAddRecipeToDay(dayIdx)}
+                >
+                  <Text style={[styles.dayChipText, { color: colors.primary }]}>{label}</Text>
+                </Pressable>
+              ))}
             </View>
           </View>
 
@@ -244,6 +320,42 @@ const styles = StyleSheet.create({
   ratingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.05)' },
   ratingLabel: { fontSize: 14, fontWeight: '600' },
   stars: { flexDirection: 'row', gap: 4 },
+  dayAssignHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  feedbackBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  feedbackText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  dayChipsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 4,
+  },
+  dayChip: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dayChipText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  pressed: { opacity: 0.7 },
   ingredientsHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
