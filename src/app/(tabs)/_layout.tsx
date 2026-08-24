@@ -1,9 +1,13 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../theme/AppThemeProvider';
 
 export default function TabsLayout() {
     const { colors } = useAppTheme();
+    const insets = useSafeAreaInsets();
+    const bottomPadding = Math.max(insets.bottom, Platform.OS === 'web' ? 24 : 12);
 
     return (
         <Tabs
@@ -13,7 +17,17 @@ export default function TabsLayout() {
                 tabBarStyle: {
                     backgroundColor: colors.card,
                     borderTopWidth: 0.5,
-                    borderTopColor: colors.border
+                    borderTopColor: colors.border,
+                    height: 60 + bottomPadding,
+                    paddingTop: 4,
+                    paddingBottom: bottomPadding,
+                },
+                tabBarIconStyle: {
+                    marginBottom: 1,
+                },
+                tabBarLabelStyle: {
+                    fontSize: 11,
+                    fontWeight: '600',
                 },
                 headerShown: false,
                 sceneStyle: {
@@ -26,8 +40,8 @@ export default function TabsLayout() {
                     options={{
                         title: 'Ruoka-apuri',
                         tabBarLabel: 'Koti',
-                        tabBarIcon: ({ color, size }) => (
-                            <Ionicons name="restaurant-outline" color={color} size={size} />
+                        tabBarIcon: ({ color }) => (
+                            <Ionicons name="restaurant-outline" color={color} size={22} />
                         )
                     }}
                 />
@@ -36,8 +50,8 @@ export default function TabsLayout() {
                     options={{
                         title: 'Kalenteri',
                         tabBarLabel: 'Kalenteri',
-                        tabBarIcon: ({ color, size }) => (
-                            <Ionicons name="calendar-outline" color={color} size={size} />
+                        tabBarIcon: ({ color }) => (
+                            <Ionicons name="calendar-outline" color={color} size={22} />
                         )
                     }}
                 />
@@ -46,8 +60,8 @@ export default function TabsLayout() {
                     options={{
                         title: 'Ostoslista',
                         tabBarLabel: 'Ostoslista',
-                        tabBarIcon: ({ color, size }) => (
-                            <Ionicons name="cart-outline" color={color} size={size} />
+                        tabBarIcon: ({ color }) => (
+                            <Ionicons name="cart-outline" color={color} size={22} />
                         )
                     }}
                 />
@@ -56,8 +70,8 @@ export default function TabsLayout() {
                     options={{
                         title: 'Asetukset',
                         tabBarLabel: 'Asetukset',
-                        tabBarIcon: ({ color, size }) => (
-                            <Ionicons name="settings-outline" color={color} size={size} />
+                        tabBarIcon: ({ color }) => (
+                            <Ionicons name="settings-outline" color={color} size={22} />
                         )
                     }}
                 />
