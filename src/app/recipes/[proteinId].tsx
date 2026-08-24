@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Modal, Animated, PanResponder, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Modal, Animated, PanResponder, Alert, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -665,145 +665,147 @@ export default function RecipeGeneratorScreen() {
             }}
           />
           {previewRecipe && (
-            <Animated.View
-              style={[
-                styles.modalSheet,
-                { backgroundColor: colors.card, transform: [{ translateY: previewPanY }] },
-              ]}
-            >
-              <View style={styles.dragHandleArea} {...previewPanResponder.panHandlers}>
-                <View style={styles.modalHandle} />
-              </View>
-              
-              <View style={styles.modalHeader}>
-                <View style={styles.modalTitleContainer}>
-                  {previewIndex !== null && showWeeklyPlan && (
-                    <Text style={[styles.modalDayLabel, { color: colors.primary }]}>
-                      {dayLabels[previewRecipe.planStartDay ?? previewIndex]}
-                    </Text>
-                  )}
-                  <Text style={[styles.modalTitle, { color: colors.text }]}>{previewRecipe.title}</Text>
+            <View style={styles.modalFrameContainer} pointerEvents="box-none">
+              <Animated.View
+                style={[
+                  styles.modalSheet,
+                  { backgroundColor: colors.card, transform: [{ translateY: previewPanY }] },
+                ]}
+              >
+                <View style={styles.dragHandleArea} {...previewPanResponder.panHandlers}>
+                  <View style={styles.modalHandle} />
                 </View>
-                <Pressable
-                  style={[styles.modalCloseBtn, { backgroundColor: colors.background }]}
-                  onPress={() => {
-                    setPreviewRecipe(null);
-                    setPreviewIndex(null);
-                    setAddedDayFeedback(null);
-                  }}
-                >
-                  <Ionicons name="close" size={20} color={colors.text} />
-                </Pressable>
-              </View>
-
-              <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalScrollContent} showsVerticalScrollIndicator={false}>
-                {previewRecipe.description ? (
-                  <Text style={[styles.modalDescription, { color: colors.mutedText }]}>
-                    {previewRecipe.description}
-                  </Text>
-                ) : null}
-
-                <View style={styles.modalBadgeRow}>
-                  {previewRecipe.isMealPrep && (
-                    <View style={[styles.modalBadge, { backgroundColor: colors.success }]}>
-                      <Ionicons name="cube" size={13} color="#FFFFFF" />
-                      <Text style={styles.modalBadgeText}>Meal Prep</Text>
-                    </View>
-                  )}
-                  {previewRecipe.prep_time_minutes ? (
-                    <View style={[styles.modalChip, { backgroundColor: colors.background }]}>
-                      <Ionicons name="time-outline" size={13} color={colors.primary} />
-                      <Text style={[styles.modalChipText, { color: colors.text }]}>Valm. {previewRecipe.prep_time_minutes} min</Text>
-                    </View>
-                  ) : null}
-                  {previewRecipe.cook_time_minutes ? (
-                    <View style={[styles.modalChip, { backgroundColor: colors.background }]}>
-                      <Ionicons name="flame-outline" size={13} color={colors.primary} />
-                      <Text style={[styles.modalChipText, { color: colors.text }]}>Kyps. {previewRecipe.cook_time_minutes} min</Text>
-                    </View>
-                  ) : null}
-                  <View style={[styles.modalChip, { backgroundColor: colors.background }]}>
-                    <Ionicons name="people-outline" size={13} color={colors.primary} />
-                    <Text style={[styles.modalChipText, { color: colors.text }]}>{previewRecipe.servings_per_batch} annosta</Text>
+                
+                <View style={styles.modalHeader}>
+                  <View style={styles.modalTitleContainer}>
+                    {previewIndex !== null && showWeeklyPlan && (
+                      <Text style={[styles.modalDayLabel, { color: colors.primary }]}>
+                        {dayLabels[previewRecipe.planStartDay ?? previewIndex]}
+                      </Text>
+                    )}
+                    <Text style={[styles.modalTitle, { color: colors.text }]}>{previewRecipe.title}</Text>
                   </View>
+                  <Pressable
+                    style={[styles.modalCloseBtn, { backgroundColor: colors.background }]}
+                    onPress={() => {
+                      setPreviewRecipe(null);
+                      setPreviewIndex(null);
+                      setAddedDayFeedback(null);
+                    }}
+                  >
+                    <Ionicons name="close" size={20} color={colors.text} />
+                  </Pressable>
                 </View>
 
-                <View style={styles.modalDayAssignSection}>
-                  <View style={styles.modalDayAssignHeader}>
-                    <Text style={[styles.modalSectionTitle, { color: colors.text }]}>Lisää kalenteripäivälle</Text>
-                    {addedDayFeedback && (
-                      <View style={[styles.feedbackBadge, { backgroundColor: colors.success }]}>
-                        <Ionicons name="checkmark-circle" size={13} color="#FFFFFF" />
-                        <Text style={styles.feedbackText}>Lisätty: {addedDayFeedback}</Text>
+                <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalScrollContent} showsVerticalScrollIndicator={false}>
+                  {previewRecipe.description ? (
+                    <Text style={[styles.modalDescription, { color: colors.mutedText }]}>
+                      {previewRecipe.description}
+                    </Text>
+                  ) : null}
+
+                  <View style={styles.modalBadgeRow}>
+                    {previewRecipe.isMealPrep && (
+                      <View style={[styles.modalBadge, { backgroundColor: colors.success }]}>
+                        <Ionicons name="cube" size={13} color="#FFFFFF" />
+                        <Text style={styles.modalBadgeText}>Meal Prep</Text>
                       </View>
                     )}
+                    {previewRecipe.prep_time_minutes ? (
+                      <View style={[styles.modalChip, { backgroundColor: colors.background }]}>
+                        <Ionicons name="time-outline" size={13} color={colors.primary} />
+                        <Text style={[styles.modalChipText, { color: colors.text }]}>Valm. {previewRecipe.prep_time_minutes} min</Text>
+                      </View>
+                    ) : null}
+                    {previewRecipe.cook_time_minutes ? (
+                      <View style={[styles.modalChip, { backgroundColor: colors.background }]}>
+                        <Ionicons name="flame-outline" size={13} color={colors.primary} />
+                        <Text style={[styles.modalChipText, { color: colors.text }]}>Kyps. {previewRecipe.cook_time_minutes} min</Text>
+                      </View>
+                    ) : null}
+                    <View style={[styles.modalChip, { backgroundColor: colors.background }]}>
+                      <Ionicons name="people-outline" size={13} color={colors.primary} />
+                      <Text style={[styles.modalChipText, { color: colors.text }]}>{previewRecipe.servings_per_batch} annosta</Text>
+                    </View>
                   </View>
-                  <View style={styles.dayChipsRow}>
-                    {shortDayLabels.map((label, dayIdx) => (
-                      <Pressable
-                        key={label}
-                        style={({ pressed }) => [
-                          styles.dayChip,
-                          { backgroundColor: colors.background, borderColor: colors.border },
-                          pressed && styles.pressed,
-                        ]}
-                        onPress={() => handleAddRecipeToDay(previewRecipe, dayIdx)}
-                      >
-                        <Text style={[styles.dayChipText, { color: colors.primary }]}>{label}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                </View>
 
-                {previewRecipe.ingredients && previewRecipe.ingredients.length > 0 && (
-                  <View style={styles.modalIngredientsSection}>
-                    <Text style={[styles.modalSectionTitle, { color: colors.text }]}>Ainesosat</Text>
-                    <View style={styles.modalIngredientsList}>
-                      {previewRecipe.ingredients.map((item, idx) => (
-                        <View key={idx} style={styles.modalIngredientItem}>
-                          <View style={[styles.bullet, { backgroundColor: colors.primary }]} />
-                          <Text style={[styles.modalIngredientText, { color: colors.text }]}>
-                            {formatIngredient(item)}
-                          </Text>
+                  <View style={styles.modalDayAssignSection}>
+                    <View style={styles.modalDayAssignHeader}>
+                      <Text style={[styles.modalSectionTitle, { color: colors.text }]}>Lisää kalenteripäivälle</Text>
+                      {addedDayFeedback && (
+                        <View style={[styles.feedbackBadge, { backgroundColor: colors.success }]}>
+                          <Ionicons name="checkmark-circle" size={13} color="#FFFFFF" />
+                          <Text style={styles.feedbackText}>Lisätty: {addedDayFeedback}</Text>
                         </View>
+                      )}
+                    </View>
+                    <View style={styles.dayChipsRow}>
+                      {shortDayLabels.map((label, dayIdx) => (
+                        <Pressable
+                          key={label}
+                          style={({ pressed }) => [
+                            styles.dayChip,
+                            { backgroundColor: colors.background, borderColor: colors.border },
+                            pressed && styles.pressed,
+                          ]}
+                          onPress={() => handleAddRecipeToDay(previewRecipe, dayIdx)}
+                        >
+                          <Text style={[styles.dayChipText, { color: colors.primary }]}>{label}</Text>
+                        </Pressable>
                       ))}
                     </View>
                   </View>
-                )}
-              </ScrollView>
 
-              <View style={[styles.modalActions, { borderTopColor: colors.border }]}>
-                {previewIndex !== null && (
+                  {previewRecipe.ingredients && previewRecipe.ingredients.length > 0 && (
+                    <View style={styles.modalIngredientsSection}>
+                      <Text style={[styles.modalSectionTitle, { color: colors.text }]}>Ainesosat</Text>
+                      <View style={styles.modalIngredientsList}>
+                        {previewRecipe.ingredients.map((item, idx) => (
+                          <View key={idx} style={styles.modalIngredientItem}>
+                            <View style={[styles.bullet, { backgroundColor: colors.primary }]} />
+                            <Text style={[styles.modalIngredientText, { color: colors.text }]}>
+                              {formatIngredient(item)}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+                </ScrollView>
+
+                <View style={[styles.modalActions, { borderTopColor: colors.border }]}>
+                  {previewIndex !== null && (
+                    <Pressable
+                      style={[styles.modalSwapBtn, { borderColor: colors.primary, backgroundColor: colors.card }]}
+                      onPress={() => handleSwapRecipe(previewIndex)}
+                      disabled={swappingIndex !== null}
+                    >
+                      {swappingIndex === previewIndex ? (
+                        <ActivityIndicator size="small" color={colors.primary} />
+                      ) : (
+                        <>
+                          <Ionicons name="refresh" size={18} color={colors.primary} />
+                          <Text style={[styles.modalSwapBtnText, { color: colors.primary }]}>Vaihda toiseen</Text>
+                        </>
+                      )}
+                    </Pressable>
+                  )}
                   <Pressable
-                    style={[styles.modalSwapBtn, { borderColor: colors.primary, backgroundColor: colors.card }]}
-                    onPress={() => handleSwapRecipe(previewIndex)}
-                    disabled={swappingIndex !== null}
+                    style={[styles.modalViewFullBtn, { backgroundColor: colors.primary }]}
+                    onPress={() => {
+                      const id = previewRecipe.id;
+                      setPreviewRecipe(null);
+                      setPreviewIndex(null);
+                      setAddedDayFeedback(null);
+                      router.push({ pathname: '/recipe/[recipeId]', params: { recipeId: id } });
+                    }}
                   >
-                    {swappingIndex === previewIndex ? (
-                      <ActivityIndicator size="small" color={colors.primary} />
-                    ) : (
-                      <>
-                        <Ionicons name="refresh" size={18} color={colors.primary} />
-                        <Text style={[styles.modalSwapBtnText, { color: colors.primary }]}>Vaihda toiseen</Text>
-                      </>
-                    )}
+                    <Ionicons name="book-outline" size={18} color="#FFFFFF" />
+                    <Text style={styles.modalViewFullBtnText}>Katso koko ohje</Text>
                   </Pressable>
-                )}
-                <Pressable
-                  style={[styles.modalViewFullBtn, { backgroundColor: colors.primary }]}
-                  onPress={() => {
-                    const id = previewRecipe.id;
-                    setPreviewRecipe(null);
-                    setPreviewIndex(null);
-                    setAddedDayFeedback(null);
-                    router.push({ pathname: '/recipe/[recipeId]', params: { recipeId: id } });
-                  }}
-                >
-                  <Ionicons name="book-outline" size={18} color="#FFFFFF" />
-                  <Text style={styles.modalViewFullBtnText}>Katso koko ohje</Text>
-                </Pressable>
-              </View>
-            </Animated.View>
+                </View>
+              </Animated.View>
+            </View>
           )}
         </View>
       </Modal>
@@ -816,12 +818,13 @@ export default function RecipeGeneratorScreen() {
       >
         <View style={styles.modalOverlay}>
           <Pressable style={styles.modalBackdrop} onPress={() => setSlotModalVisible(false)} />
-          <Animated.View
-            style={[
-              styles.slotModalSheet,
-              { backgroundColor: colors.card, transform: [{ translateY: slotPanY }] },
-            ]}
-          >
+          <View style={styles.modalFrameContainer} pointerEvents="box-none">
+            <Animated.View
+              style={[
+                styles.slotModalSheet,
+                { backgroundColor: colors.card, transform: [{ translateY: slotPanY }] },
+              ]}
+            >
             <View style={styles.dragHandleArea} {...slotPanResponder.panHandlers}>
               <View style={styles.modalHandle} />
             </View>
@@ -990,6 +993,7 @@ export default function RecipeGeneratorScreen() {
               </Pressable>
             </View>
           </Animated.View>
+          </View>
         </View>
       </Modal>
     </SafeAreaView>
@@ -1117,13 +1121,26 @@ const styles = StyleSheet.create({
   emptyText: { textAlign: 'center', marginTop: 20, fontSize: 15 },
   modalOverlay: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: 'transparent',
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
   },
+  modalFrameContainer: {
+    width: '100%',
+    maxWidth: 430,
+    height: Platform.OS === 'web' ? '92%' : '100%',
+    maxHeight: Platform.OS === 'web' ? 880 : undefined,
+    justifyContent: 'flex-end',
+    borderBottomLeftRadius: Platform.OS === 'web' ? 32 : 0,
+    borderBottomRightRadius: Platform.OS === 'web' ? 32 : 0,
+    overflow: 'hidden',
+  },
   modalSheet: {
+    width: '100%',
+    maxWidth: 430,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderTopWidth: 1,
@@ -1326,6 +1343,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   slotModalSheet: {
+    width: '100%',
+    maxWidth: 430,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderTopWidth: 1,

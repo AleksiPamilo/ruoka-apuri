@@ -688,76 +688,78 @@ export default function ShoppingListScreen() {
       >
         <View style={styles.modalOverlay}>
           <Pressable style={styles.modalBackdrop} onPress={() => setOptionsMenuVisible(false)} />
-          <Animated.View
-            style={[
-              styles.actionSheet,
-              { backgroundColor: colors.card, transform: [{ translateY: optionsPanY }] },
-            ]}
-          >
-            <View style={styles.dragHandleArea} {...optionsPanResponder.panHandlers}>
-              <View style={styles.modalHandle} />
-            </View>
-            <Text style={[styles.actionSheetTitle, { color: colors.mutedText }]}>Ostoslistan valinnat</Text>
-
-            <Pressable style={styles.actionSheetRow} onPress={handleSyncFromCalendar}>
-              <View style={[styles.actionIconContainer, { backgroundColor: colors.background }]}>
-                <Ionicons name="refresh-outline" size={20} color={colors.primary} />
-              </View>
-              <View style={styles.actionTextContainer}>
-                <Text style={[styles.actionRowTitle, { color: colors.text }]}>Päivitä aterioista</Text>
-                <Text style={[styles.actionRowSubtitle, { color: colors.mutedText }]}>
-                  Tuo ainekset aktiivisesta ateriasuunnitelmasta
-                </Text>
-              </View>
-            </Pressable>
-
-            <Pressable style={styles.actionSheetRow} onPress={handleShareList}>
-              <View style={[styles.actionIconContainer, { backgroundColor: colors.background }]}>
-                <Ionicons name="share-outline" size={20} color={colors.primary} />
-              </View>
-              <View style={styles.actionTextContainer}>
-                <Text style={[styles.actionRowTitle, { color: colors.text }]}>Jaa ostoslista</Text>
-                <Text style={[styles.actionRowSubtitle, { color: colors.mutedText }]}>
-                  Lähetä lista viestinä tai tallenna muistiinpanoihin
-                </Text>
-              </View>
-            </Pressable>
-
-            {checkedItems.length > 0 && (
-              <Pressable style={styles.actionSheetRow} onPress={handleClearCompleted}>
-                <View style={[styles.actionIconContainer, { backgroundColor: colors.background }]}>
-                  <Ionicons name="checkmark-done-outline" size={20} color={colors.primary} />
-                </View>
-                <View style={styles.actionTextContainer}>
-                  <Text style={[styles.actionRowTitle, { color: colors.text }]}>Poista kerätyt tuotteet</Text>
-                  <Text style={[styles.actionRowSubtitle, { color: colors.mutedText }]}>
-                    Poistaa kaikki valmiiksi merkityt ({checkedItems.length} kpl)
-                  </Text>
-                </View>
-              </Pressable>
-            )}
-
-            {items.length > 0 && (
-              <Pressable style={styles.actionSheetRow} onPress={handleClearAll}>
-                <View style={[styles.actionIconContainer, { backgroundColor: '#FF3B3015' }]}>
-                  <Ionicons name="trash-outline" size={20} color="#FF3B30" />
-                </View>
-                <View style={styles.actionTextContainer}>
-                  <Text style={[styles.actionRowTitle, { color: '#FF3B30' }]}>Tyhjennä koko lista</Text>
-                  <Text style={[styles.actionRowSubtitle, { color: colors.mutedText }]}>
-                    Poistaa kaikki tuotteet ostoslistalta
-                  </Text>
-                </View>
-              </Pressable>
-            )}
-
-            <Pressable
-              style={[styles.actionSheetCancelBtn, { backgroundColor: colors.background }]}
-              onPress={() => setOptionsMenuVisible(false)}
+          <View style={styles.modalFrameContainer} pointerEvents="box-none">
+            <Animated.View
+              style={[
+                styles.actionSheet,
+                { backgroundColor: colors.card, transform: [{ translateY: optionsPanY }] },
+              ]}
             >
-              <Text style={[styles.actionSheetCancelText, { color: colors.text }]}>Sulje</Text>
-            </Pressable>
-          </Animated.View>
+              <View style={styles.dragHandleArea} {...optionsPanResponder.panHandlers}>
+                <View style={styles.modalHandle} />
+              </View>
+              <Text style={[styles.actionSheetTitle, { color: colors.mutedText }]}>Ostoslistan valinnat</Text>
+
+              <Pressable style={styles.actionSheetRow} onPress={handleSyncFromCalendar}>
+                <View style={[styles.actionIconContainer, { backgroundColor: colors.background }]}>
+                  <Ionicons name="refresh-outline" size={20} color={colors.primary} />
+                </View>
+                <View style={styles.actionTextContainer}>
+                  <Text style={[styles.actionRowTitle, { color: colors.text }]}>Päivitä aterioista</Text>
+                  <Text style={[styles.actionRowSubtitle, { color: colors.mutedText }]}>
+                    Tuo ainekset aktiivisesta ateriasuunnitelmasta
+                  </Text>
+                </View>
+              </Pressable>
+
+              <Pressable style={styles.actionSheetRow} onPress={handleShareList}>
+                <View style={[styles.actionIconContainer, { backgroundColor: colors.background }]}>
+                  <Ionicons name="share-outline" size={20} color={colors.primary} />
+                </View>
+                <View style={styles.actionTextContainer}>
+                  <Text style={[styles.actionRowTitle, { color: colors.text }]}>Jaa ostoslista</Text>
+                  <Text style={[styles.actionRowSubtitle, { color: colors.mutedText }]}>
+                    Lähetä lista viestinä tai tallenna muistiinpanoihin
+                  </Text>
+                </View>
+              </Pressable>
+
+              {checkedItems.length > 0 && (
+                <Pressable style={styles.actionSheetRow} onPress={handleClearCompleted}>
+                  <View style={[styles.actionIconContainer, { backgroundColor: colors.background }]}>
+                    <Ionicons name="checkmark-done-outline" size={20} color={colors.primary} />
+                  </View>
+                  <View style={styles.actionTextContainer}>
+                    <Text style={[styles.actionRowTitle, { color: colors.text }]}>Poista kerätyt tuotteet</Text>
+                    <Text style={[styles.actionRowSubtitle, { color: colors.mutedText }]}>
+                      Poistaa kaikki valmiiksi merkityt ({checkedItems.length} kpl)
+                    </Text>
+                  </View>
+                </Pressable>
+              )}
+
+              {items.length > 0 && (
+                <Pressable style={styles.actionSheetRow} onPress={handleClearAll}>
+                  <View style={[styles.actionIconContainer, { backgroundColor: '#FF3B3015' }]}>
+                    <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+                  </View>
+                  <View style={styles.actionTextContainer}>
+                    <Text style={[styles.actionRowTitle, { color: '#FF3B30' }]}>Tyhjennä koko lista</Text>
+                    <Text style={[styles.actionRowSubtitle, { color: colors.mutedText }]}>
+                      Poistaa kaikki tuotteet ostoslistalta
+                    </Text>
+                  </View>
+                </Pressable>
+              )}
+
+              <Pressable
+                style={[styles.actionSheetCancelBtn, { backgroundColor: colors.background }]}
+                onPress={() => setOptionsMenuVisible(false)}
+              >
+                <Text style={[styles.actionSheetCancelText, { color: colors.text }]}>Sulje</Text>
+              </Pressable>
+            </Animated.View>
+          </View>
         </View>
       </Modal>
 
@@ -1042,13 +1044,26 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: 'transparent',
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
   },
+  modalFrameContainer: {
+    width: '100%',
+    maxWidth: 430,
+    height: Platform.OS === 'web' ? '92%' : '100%',
+    maxHeight: Platform.OS === 'web' ? 880 : undefined,
+    justifyContent: 'flex-end',
+    borderBottomLeftRadius: Platform.OS === 'web' ? 32 : 0,
+    borderBottomRightRadius: Platform.OS === 'web' ? 32 : 0,
+    overflow: 'hidden',
+  },
   actionSheet: {
+    width: '100%',
+    maxWidth: 430,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderTopWidth: 1,
@@ -1121,6 +1136,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   dialogCard: {
+    width: '100%',
+    maxWidth: 400,
     marginHorizontal: 24,
     marginBottom: 'auto',
     marginTop: 'auto',

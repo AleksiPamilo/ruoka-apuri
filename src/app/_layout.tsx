@@ -1,25 +1,115 @@
+import { useState, useEffect } from 'react';
+import { Platform, useWindowDimensions, View, StyleSheet, Pressable, Text } from 'react-native';
 import { Stack } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { AppThemeProvider, useAppTheme } from '../theme/AppThemeProvider';
+import InstallGuideView from '../components/InstallGuideView';
 
 function RootNavigator() {
-    const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
+  const { width } = useWindowDimensions();
+  const [showApp, setShowApp] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
 
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const standalone =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as any).standalone === true ||
+        document.referrer.includes('android-app://');
+      setIsStandalone(Boolean(standalone));
+    }
+  }, []);
+
+  const isWeb = Platform.OS === 'web';
+  const isWideWeb = isWeb && width >= 768;
+
+  if (isWeb && !isStandalone && !showApp) {
+    return <InstallGuideView onContinueToApp={() => setShowApp(true)} />;
+  }
+
+  if (isWideWeb) {
     return (
-        <Stack
+      <View style={[styles.desktopOuterContainer, { backgroundColor: isDark ? '#09090b' : '#e4e4e7' }]}>
+        {!isStandalone && (
+          <View style={styles.desktopTopBar}>
+            <Pressable
+              style={[styles.backToGuideBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+              onPress={() => setShowApp(false)}
+            >
+              <Ionicons name="arrow-back" size={16} color={colors.text} />
+              <Text style={[styles.backToGuideText, { color: colors.text }]}>Takaisin asennusohjeisiin</Text>
+            </Pressable>
+          </View>
+        )}
+        <View style={[styles.phoneFrame, { backgroundColor: colors.background, borderColor: colors.border }]}>
+          <Stack
             screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: colors.background }
+              headerShown: false,
+              contentStyle: { backgroundColor: colors.background }
             }}
-        >
+          >
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        </Stack>
+          </Stack>
+        </View>
+      </View>
     );
+  }
+
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: colors.background }
+      }}
+    >
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+    </Stack>
+  );
 }
 
 export default function RootLayout() {
-    return (
-        <AppThemeProvider>
-            <RootNavigator />
-        </AppThemeProvider>
-    );
+  return (
+    <AppThemeProvider>
+      <RootNavigator />
+    </AppThemeProvider>
+  );
 }
+
+const styles = StyleSheet.create({
+  desktopOuterContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+  },
+  desktopTopBar: {
+    marginBottom: 10,
+  },
+  backToGuideBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  backToGuideText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  phoneFrame: {
+    width: '100%',
+    maxWidth: 430,
+    height: '92%',
+    maxHeight: 880,
+    borderRadius: 32,
+    borderWidth: 1.5,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+});

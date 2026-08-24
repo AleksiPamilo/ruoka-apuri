@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Modal, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -451,110 +451,112 @@ export default function CalendarScreen() {
       >
         <View style={styles.modalOverlay}>
           <Pressable style={styles.modalBackdrop} onPress={() => setOptionsMenuVisible(false)} />
-          <Animated.View
-            style={[
-              styles.actionSheet,
-              { backgroundColor: colors.card, transform: [{ translateY: optionsPanY }] },
-            ]}
-          >
-            <View style={styles.dragHandleArea} {...optionsPanResponder.panHandlers}>
-              <View style={styles.modalHandle} />
-            </View>
-            <Text style={[styles.actionSheetTitle, { color: colors.mutedText }]}>Valinnat</Text>
-
-            <Pressable
-              style={styles.actionSheetRow}
-              onPress={() => {
-                setOptionsMenuVisible(false);
-                loadTemplates();
-                setTemplatesModalVisible(true);
-              }}
+          <View style={styles.modalFrameContainer} pointerEvents="box-none">
+            <Animated.View
+              style={[
+                styles.actionSheet,
+                { backgroundColor: colors.card, transform: [{ translateY: optionsPanY }] },
+              ]}
             >
-              <View style={[styles.actionIconContainer, { backgroundColor: colors.background }]}>
-                <Ionicons name="albums-outline" size={20} color={colors.primary} />
+              <View style={styles.dragHandleArea} {...optionsPanResponder.panHandlers}>
+                <View style={styles.modalHandle} />
               </View>
-              <View style={styles.actionTextContainer}>
-                <Text style={[styles.actionRowTitle, { color: colors.text }]}>Omat suunnitelmat</Text>
-                <Text style={[styles.actionRowSubtitle, { color: colors.mutedText }]}>
-                  {templates.length > 0 ? `${templates.length} tallennettua mallipohjaa` : 'Selaa ja ota käyttöön pohjia'}
-                </Text>
-              </View>
-              {templates.length > 0 && (
-                <View style={[styles.countBadge, { backgroundColor: colors.background }]}>
-                  <Text style={[styles.countBadgeText, { color: colors.primary }]}>{templates.length}</Text>
+              <Text style={[styles.actionSheetTitle, { color: colors.mutedText }]}>Valinnat</Text>
+
+              <Pressable
+                style={styles.actionSheetRow}
+                onPress={() => {
+                  setOptionsMenuVisible(false);
+                  loadTemplates();
+                  setTemplatesModalVisible(true);
+                }}
+              >
+                <View style={[styles.actionIconContainer, { backgroundColor: colors.background }]}>
+                  <Ionicons name="albums-outline" size={20} color={colors.primary} />
                 </View>
+                <View style={styles.actionTextContainer}>
+                  <Text style={[styles.actionRowTitle, { color: colors.text }]}>Omat suunnitelmat</Text>
+                  <Text style={[styles.actionRowSubtitle, { color: colors.mutedText }]}>
+                    {templates.length > 0 ? `${templates.length} tallennettua mallipohjaa` : 'Selaa ja ota käyttöön pohjia'}
+                  </Text>
+                </View>
+                {templates.length > 0 && (
+                  <View style={[styles.countBadge, { backgroundColor: colors.background }]}>
+                    <Text style={[styles.countBadgeText, { color: colors.primary }]}>{templates.length}</Text>
+                  </View>
+                )}
+              </Pressable>
+
+              {plan.length > 0 && (
+                <Pressable
+                  style={styles.actionSheetRow}
+                  onPress={() => {
+                    setOptionsMenuVisible(false);
+                    setEditMode(true);
+                    setSelectedKeys([]);
+                  }}
+                >
+                  <View style={[styles.actionIconContainer, { backgroundColor: colors.background }]}>
+                    <Ionicons name="checkbox-outline" size={20} color={colors.primary} />
+                  </View>
+                  <View style={styles.actionTextContainer}>
+                    <Text style={[styles.actionRowTitle, { color: colors.text }]}>Valitse aterioita</Text>
+                    <Text style={[styles.actionRowSubtitle, { color: colors.mutedText }]}>
+                      Valitse ja poista useita aterioita kerralla
+                    </Text>
+                  </View>
+                </Pressable>
               )}
-            </Pressable>
 
-            {plan.length > 0 && (
+              {plan.length > 0 && (
+                <Pressable
+                  style={styles.actionSheetRow}
+                  onPress={() => {
+                    setOptionsMenuVisible(false);
+                    setTemplateNameInput(`Suunnitelma ${templates.length + 1}`);
+                    setSaveTemplateModalVisible(true);
+                  }}
+                >
+                  <View style={[styles.actionIconContainer, { backgroundColor: colors.background }]}>
+                    <Ionicons name="bookmark-outline" size={20} color={colors.primary} />
+                  </View>
+                  <View style={styles.actionTextContainer}>
+                    <Text style={[styles.actionRowTitle, { color: colors.text }]}>Tallenna pohjaksi</Text>
+                    <Text style={[styles.actionRowSubtitle, { color: colors.mutedText }]}>
+                      Tallenna tämä viikko uudelleen käytettäväksi
+                    </Text>
+                  </View>
+                </Pressable>
+              )}
+
+              {plan.length > 0 && (
+                <Pressable
+                  style={styles.actionSheetRow}
+                  onPress={() => {
+                    setOptionsMenuVisible(false);
+                    setTimeout(confirmClearWeek, 200);
+                  }}
+                >
+                  <View style={[styles.actionIconContainer, { backgroundColor: '#FF3B3015' }]}>
+                    <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+                  </View>
+                  <View style={styles.actionTextContainer}>
+                    <Text style={[styles.actionRowTitle, { color: '#FF3B30' }]}>Tyhjennä koko viikko</Text>
+                    <Text style={[styles.actionRowSubtitle, { color: colors.mutedText }]}>
+                      Poistaa kaikki ateriat aktiivisesta kalenterista
+                    </Text>
+                  </View>
+                </Pressable>
+              )}
+
               <Pressable
-                style={styles.actionSheetRow}
-                onPress={() => {
-                  setOptionsMenuVisible(false);
-                  setEditMode(true);
-                  setSelectedKeys([]);
-                }}
+                style={[styles.actionSheetCancelBtn, { backgroundColor: colors.background }]}
+                onPress={() => setOptionsMenuVisible(false)}
               >
-                <View style={[styles.actionIconContainer, { backgroundColor: colors.background }]}>
-                  <Ionicons name="checkbox-outline" size={20} color={colors.primary} />
-                </View>
-                <View style={styles.actionTextContainer}>
-                  <Text style={[styles.actionRowTitle, { color: colors.text }]}>Valitse aterioita</Text>
-                  <Text style={[styles.actionRowSubtitle, { color: colors.mutedText }]}>
-                    Valitse ja poista useita aterioita kerralla
-                  </Text>
-                </View>
+                <Text style={[styles.actionSheetCancelText, { color: colors.text }]}>Sulje</Text>
               </Pressable>
-            )}
-
-            {plan.length > 0 && (
-              <Pressable
-                style={styles.actionSheetRow}
-                onPress={() => {
-                  setOptionsMenuVisible(false);
-                  setTemplateNameInput(`Suunnitelma ${templates.length + 1}`);
-                  setSaveTemplateModalVisible(true);
-                }}
-              >
-                <View style={[styles.actionIconContainer, { backgroundColor: colors.background }]}>
-                  <Ionicons name="bookmark-outline" size={20} color={colors.primary} />
-                </View>
-                <View style={styles.actionTextContainer}>
-                  <Text style={[styles.actionRowTitle, { color: colors.text }]}>Tallenna pohjaksi</Text>
-                  <Text style={[styles.actionRowSubtitle, { color: colors.mutedText }]}>
-                    Tallenna tämä viikko uudelleen käytettäväksi
-                  </Text>
-                </View>
-              </Pressable>
-            )}
-
-            {plan.length > 0 && (
-              <Pressable
-                style={styles.actionSheetRow}
-                onPress={() => {
-                  setOptionsMenuVisible(false);
-                  setTimeout(confirmClearWeek, 200);
-                }}
-              >
-                <View style={[styles.actionIconContainer, { backgroundColor: '#FF3B3015' }]}>
-                  <Ionicons name="trash-outline" size={20} color="#FF3B30" />
-                </View>
-                <View style={styles.actionTextContainer}>
-                  <Text style={[styles.actionRowTitle, { color: '#FF3B30' }]}>Tyhjennä koko viikko</Text>
-                  <Text style={[styles.actionRowSubtitle, { color: colors.mutedText }]}>
-                    Poistaa kaikki ateriat aktiivisesta kalenterista
-                  </Text>
-                </View>
-              </Pressable>
-            )}
-
-            <Pressable
-              style={[styles.actionSheetCancelBtn, { backgroundColor: colors.background }]}
-              onPress={() => setOptionsMenuVisible(false)}
-            >
-              <Text style={[styles.actionSheetCancelText, { color: colors.text }]}>Sulje</Text>
-            </Pressable>
-          </Animated.View>
+            </Animated.View>
+          </View>
         </View>
       </Modal>
 
@@ -605,29 +607,30 @@ export default function CalendarScreen() {
       >
         <View style={styles.modalOverlay}>
           <Pressable style={styles.modalBackdrop} onPress={() => setTemplatesModalVisible(false)} />
-          <Animated.View
-            style={[
-              styles.sheetContainer,
-              { backgroundColor: colors.card, transform: [{ translateY: templatesPanY }] },
-            ]}
-          >
-            <View style={styles.dragHandleArea} {...templatesPanResponder.panHandlers}>
-              <View style={styles.modalHandle} />
-            </View>
-            <View style={styles.sheetHeader}>
-              <View>
-                <Text style={[styles.sheetTitle, { color: colors.text }]}>Tallennetut suunnitelmat</Text>
-                <Text style={[styles.sheetSubtitle, { color: colors.mutedText }]}>
-                  {templates.length} tallennettua mallipohjaa
-                </Text>
+          <View style={styles.modalFrameContainer} pointerEvents="box-none">
+            <Animated.View
+              style={[
+                styles.sheetContainer,
+                { backgroundColor: colors.card, transform: [{ translateY: templatesPanY }] },
+              ]}
+            >
+              <View style={styles.dragHandleArea} {...templatesPanResponder.panHandlers}>
+                <View style={styles.modalHandle} />
               </View>
-              <Pressable
-                style={[styles.closeIconBtn, { backgroundColor: colors.background }]}
-                onPress={() => setTemplatesModalVisible(false)}
-              >
-                <Ionicons name="close" size={20} color={colors.text} />
-              </Pressable>
-            </View>
+              <View style={styles.sheetHeader}>
+                <View>
+                  <Text style={[styles.sheetTitle, { color: colors.text }]}>Tallennetut suunnitelmat</Text>
+                  <Text style={[styles.sheetSubtitle, { color: colors.mutedText }]}>
+                    {templates.length} tallennettua mallipohjaa
+                  </Text>
+                </View>
+                <Pressable
+                  style={[styles.closeIconBtn, { backgroundColor: colors.background }]}
+                  onPress={() => setTemplatesModalVisible(false)}
+                >
+                  <Ionicons name="close" size={20} color={colors.text} />
+                </Pressable>
+              </View>
 
             <ScrollView style={styles.templatesList} showsVerticalScrollIndicator={false}>
               {templates.length > 0 ? (
@@ -686,6 +689,7 @@ export default function CalendarScreen() {
               )}
             </ScrollView>
           </Animated.View>
+          </View>
         </View>
       </Modal>
     </View>
@@ -820,13 +824,26 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: 'transparent',
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
   },
+  modalFrameContainer: {
+    width: '100%',
+    maxWidth: 430,
+    height: Platform.OS === 'web' ? '92%' : '100%',
+    maxHeight: Platform.OS === 'web' ? 880 : undefined,
+    justifyContent: 'flex-end',
+    borderBottomLeftRadius: Platform.OS === 'web' ? 32 : 0,
+    borderBottomRightRadius: Platform.OS === 'web' ? 32 : 0,
+    overflow: 'hidden',
+  },
   actionSheet: {
+    width: '100%',
+    maxWidth: 430,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderTopWidth: 1,
@@ -894,6 +911,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   dialogCard: {
+    width: '100%',
+    maxWidth: 400,
     marginHorizontal: 24,
     marginBottom: 'auto',
     marginTop: 'auto',
@@ -937,6 +956,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   sheetContainer: {
+    width: '100%',
+    maxWidth: 430,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderTopWidth: 1,
