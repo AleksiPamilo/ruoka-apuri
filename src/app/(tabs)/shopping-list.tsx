@@ -1,7 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   KeyboardAvoidingView,
   Modal,
@@ -22,6 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../theme/AppThemeProvider';
 import { Recipe } from '../../types/recipe';
 import { CategoryInfo, ShoppingItem } from '../../types/shoppingList';
+import { showAppAlert } from '../../components/AlertProvider';
 import {
   fetchShoppingCategories,
   findIngredientCategory,
@@ -160,19 +160,19 @@ export default function ShoppingListScreen() {
     try {
       const storedPlan = await AsyncStorage.getItem(SAVED_PLAN_KEY);
       if (!storedPlan) {
-        Alert.alert('Ei aterioita', 'Kalenterissasi ei ole tällä hetkellä tallennettuja aterioita.');
+        showAppAlert('Ei aterioita', 'Kalenterissasi ei ole tällä hetkellä tallennettuja aterioita.');
         return;
       }
       const parsed = JSON.parse(storedPlan);
       const recipes: Recipe[] = Array.isArray(parsed) ? parsed : parsed.recipes || [];
       if (recipes.length === 0) {
-        Alert.alert('Ei aterioita', 'Kalenterissasi ei ole tällä hetkellä tallennettuja aterioita.');
+        showAppAlert('Ei aterioita', 'Kalenterissasi ei ole tällä hetkellä tallennettuja aterioita.');
         return;
       }
 
       const updated = generateShoppingListFromPlan(recipes, items);
       await updateItems(updated);
-      Alert.alert('Päivitetty', `Ostoslistalle tuotu ainekset ${recipes.length} ateriasta.`);
+      showAppAlert('Päivitetty', `Ostoslistalle tuotu ainekset ${recipes.length} ateriasta.`);
     } catch (e) {
       console.error(e);
     }
@@ -181,7 +181,7 @@ export default function ShoppingListScreen() {
   const handleShareList = async () => {
     setOptionsMenuVisible(false);
     if (items.length === 0) {
-      Alert.alert('Ostoslista on tyhjä', 'Lisää ensin tuotteita jaettavaksi.');
+      showAppAlert('Ostoslista on tyhjä', 'Lisää ensin tuotteita jaettavaksi.');
       return;
     }
     const text = formatShoppingListForSharing(items, categories);
@@ -203,7 +203,7 @@ export default function ShoppingListScreen() {
 
   const handleClearAll = () => {
     setOptionsMenuVisible(false);
-    Alert.alert(
+    showAppAlert(
       'Tyhjennä ostoslista?',
       'Haluatko varmasti poistaa kaikki tuotteet ostoslistalta?',
       [

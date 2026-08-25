@@ -1,11 +1,12 @@
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Modal, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Animated, Modal, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Recipe } from '../../types/recipe';
 import { useAppTheme } from '../../theme/AppThemeProvider';
+import { showAppAlert } from '../../components/AlertProvider';
 
 const SAVED_PLAN_KEY = 'ruoka-apuri.saved-weekly-plan';
 const SAVED_TEMPLATES_KEY = 'ruoka-apuri.saved-plan-templates';
@@ -180,7 +181,7 @@ export default function CalendarScreen() {
 
   const confirmRemoveSelected = () => {
     if (selectedKeys.length === 0) return;
-    Alert.alert(
+    showAppAlert(
       'Poista valitut ateriat?',
       `Haluatko varmasti poistaa ${selectedKeys.length} valittua ateriaa suunnitelmasta?`,
       [
@@ -200,7 +201,7 @@ export default function CalendarScreen() {
   };
 
   const confirmClearWeek = () => {
-    Alert.alert(
+    showAppAlert(
       'Tyhjennä viikko?',
       'Haluatko varmasti poistaa koko viikon ateriasuunnitelman? Tätä toimintoa ei voi peruuttaa.',
       [
@@ -237,7 +238,7 @@ export default function CalendarScreen() {
   };
 
   const handleApplyTemplate = async (template: PlanTemplate) => {
-    Alert.alert(
+    showAppAlert(
       'Ota suunnitelma käyttöön?',
       `Haluatko korvata aktiivisen viikon suunnitelmalla "${template.name}"?`,
       [

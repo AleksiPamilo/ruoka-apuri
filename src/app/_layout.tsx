@@ -4,6 +4,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { AppThemeProvider, useAppTheme } from '../theme/AppThemeProvider';
+import { AlertProvider } from '../components/AlertProvider';
 import InstallGuideView from '../components/InstallGuideView';
 
 function RootNavigator() {
@@ -26,6 +27,49 @@ function RootNavigator() {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
       document.documentElement.style.backgroundColor = colors.background;
       document.body.style.backgroundColor = colors.background;
+
+      let metaViewport = document.querySelector('meta[name="viewport"]');
+      if (!metaViewport) {
+        metaViewport = document.createElement('meta');
+        metaViewport.setAttribute('name', 'viewport');
+        document.head.appendChild(metaViewport);
+      }
+      metaViewport.setAttribute(
+        'content',
+        'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover'
+      );
+
+      let styleEl = document.getElementById('ruoka-apuri-web-styles');
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = 'ruoka-apuri-web-styles';
+        styleEl.innerHTML = `
+          html, body, #root {
+            touch-action: manipulation;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: none;
+          }
+          *, *::before, *::after {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+          }
+          input, textarea, [contenteditable="true"] {
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            -ms-user-select: text !important;
+            user-select: text !important;
+          }
+        `;
+        document.head.appendChild(styleEl);
+      }
 
       let metaThemeColor = document.querySelector('meta[name="theme-color"]');
       if (!metaThemeColor) {
@@ -106,7 +150,9 @@ function RootNavigator() {
 export default function RootLayout() {
   return (
     <AppThemeProvider>
-      <RootNavigator />
+      <AlertProvider>
+        <RootNavigator />
+      </AlertProvider>
     </AppThemeProvider>
   );
 }

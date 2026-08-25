@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Modal, Animated, PanResponder, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Modal, Animated, PanResponder, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,6 +8,7 @@ import { getSuggestedRecipes } from '../../services/recipeService';
 import { Recipe, IngredientItem } from '../../types/recipe';
 import { useAppTheme } from '../../theme/AppThemeProvider';
 import { DEFAULT_SERVINGS_KEY } from '../(tabs)/settings';
+import { showAppAlert } from '../../components/AlertProvider';
 
 const SAVED_PLAN_KEY = 'ruoka-apuri.saved-weekly-plan';
 const dayLabels = ['Maanantai', 'Tiistai', 'Keskiviikko', 'Torstai', 'Perjantai', 'Lauantai', 'Sunnuntai'];
@@ -406,7 +407,7 @@ export default function RecipeGeneratorScreen() {
         },
       ];
 
-      Alert.alert(
+      showAppAlert(
         freeDays.length === 0 ? 'Kalenteri on täynnä' : 'Kalenterissa on jo aterioita',
         freeDays.length === 0
           ? `Kalenterissasi on jo 7 ateriaa. Haluatko valita mitkä päivät korvataan, vai korvata koko viikon?`
