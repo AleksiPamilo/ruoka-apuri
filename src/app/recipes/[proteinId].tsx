@@ -194,12 +194,38 @@ export default function RecipeGeneratorScreen() {
         }
 
         const servings = chosenRecipe.servings_per_batch || 4;
-        const lastsDays = Math.max(1, Math.min(7 - dayIndex, Math.floor(servings / diners)));
+        let lastsDays: number;
+        if (isPrepMode) {
+          const remainingDays = 7 - dayIndex;
+          if (remainingDays >= 5) {
+            lastsDays = 3;
+          } else if (remainingDays === 4) {
+            lastsDays = 2;
+          } else if (remainingDays === 3) {
+            lastsDays = 3;
+          } else if (remainingDays === 2) {
+            lastsDays = 2;
+          } else {
+            lastsDays = 1;
+          }
+          if (diners === 1) {
+            const naturalBatchDays = Math.floor(servings / diners);
+            if (naturalBatchDays > lastsDays) {
+              lastsDays = Math.min(remainingDays, naturalBatchDays);
+            }
+          }
+        } else {
+          lastsDays = Math.max(1, Math.min(7 - dayIndex, Math.floor(servings / diners)));
+        }
+
+        const targetServings = lastsDays * diners;
 
         selected.push({
           ...chosenRecipe,
           planStartDay: dayIndex,
           lastsDays,
+          diners,
+          targetServings,
           isMealPrep: isPrepMode || chosenRecipe.isMealPrep,
         });
 
@@ -213,7 +239,12 @@ export default function RecipeGeneratorScreen() {
       for (const recipe of shuffled) {
         if (currentServings >= targetServings) break;
         if (!selected.some((s) => s.id === recipe.id)) {
-          selected.push(recipe);
+          selected.push({
+            ...recipe,
+            diners,
+            targetServings: diners,
+            lastsDays: 1,
+          });
           currentServings += recipe.servings_per_batch || 4;
         }
       }
@@ -259,14 +290,15 @@ export default function RecipeGeneratorScreen() {
       }
 
       if (chosen && chosen.id !== targetRecipe.id) {
-        const lastsDays = showWeeklyPlan
-          ? Math.max(1, Math.min(7 - (targetRecipe.planStartDay ?? index), Math.floor((chosen.servings_per_batch || 4) / diners)))
-          : targetRecipe.lastsDays;
+        const lastsDays = targetRecipe.lastsDays ?? (showWeeklyPlan ? 1 : targetRecipe.lastsDays);
+        const targetServings = (lastsDays || 1) * diners;
 
         const updatedRecipe: Recipe = {
           ...chosen,
           planStartDay: targetRecipe.planStartDay ?? index,
           lastsDays,
+          diners,
+          targetServings,
           isMealPrep: mealPrepOnly || chosen.isMealPrep,
         };
 
@@ -464,11 +496,15 @@ export default function RecipeGeneratorScreen() {
         }
       }
 
-      const lastsDays = Math.max(1, Math.min(7 - dayIndex, Math.floor((recipe.servings_per_batch || 4) / diners)));
+      const computedLasts = (recipe.isMealPrep || mealPrepOnly) ? Math.min(7 - dayIndex, 2) : 1;
+      const lastsDays = Math.max(1, Math.min(7 - dayIndex, computedLasts));
+      const targetServings = lastsDays * diners;
       const newEntry: Recipe = {
         ...recipe,
         planStartDay: dayIndex,
         lastsDays,
+        diners,
+        targetServings,
       };
 
       const filtered = currentPlanRecipes.filter((r, idx) => (r.planStartDay ?? idx) !== dayIndex);
@@ -608,9 +644,17 @@ export default function RecipeGeneratorScreen() {
                   )}
                   <Text style={[styles.recipeTitle, { color: colors.text }]}>{recipe.title}</Text>
                   <Text style={[styles.recipeMeta, { color: colors.mutedText }]}>
-                    {recipe.servings_per_batch} annosta • {showWeeklyPlan
-                      ? `Riittää ${recipe.lastsDays ?? 1} päivää`
-                      : recipe.isMealPrep ? 'Prep-ystävällinen' : 'Tuoreeltaan'}
+                    {(() => {
+                      const totalServings = recipe.targetServings || ((recipe.lastsDays || 1) * (recipe.diners || diners));
+                      const days = recipe.lastsDays || 1;
+                      if (showWeeklyPlan) {
+                        if (days > 1) {
+                          return `${totalServings} annosta • Riittää ${days} päivää`;
+                        }
+                        return `${totalServings} annosta • 1 päivä`;
+                      }
+                      return `${recipe.servings_per_batch} annosta • ${recipe.isMealPrep ? 'Prep-ystävällinen' : 'Tuoreeltaan'}`;
+                    })()}
                   </Text>
                 </Pressable>
                 <View style={styles.cardActions}>
@@ -725,7 +769,9 @@ export default function RecipeGeneratorScreen() {
                     ) : null}
                     <View style={[styles.modalChip, { backgroundColor: colors.background }]}>
                       <Ionicons name="people-outline" size={13} color={colors.primary} />
-                      <Text style={[styles.modalChipText, { color: colors.text }]}>{previewRecipe.servings_per_batch} annosta</Text>
+                      <Text style={[styles.modalChipText, { color: colors.text }]}>
+                        {previewRecipe.targetServings || ((previewRecipe.lastsDays || 1) * (previewRecipe.diners || diners))} annosta
+                      </Text>
                     </View>
                   </View>
 
@@ -794,10 +840,21 @@ export default function RecipeGeneratorScreen() {
                     style={[styles.modalViewFullBtn, { backgroundColor: colors.primary }]}
                     onPress={() => {
                       const id = previewRecipe.id;
+                      const totalServings = previewRecipe.targetServings || ((previewRecipe.lastsDays || 1) * (previewRecipe.diners || diners));
+                      const lastsDays = previewRecipe.lastsDays || 1;
+                      const currentDiners = previewRecipe.diners || diners;
                       setPreviewRecipe(null);
                       setPreviewIndex(null);
                       setAddedDayFeedback(null);
-                      router.push({ pathname: '/recipe/[recipeId]', params: { recipeId: id } });
+                      router.push({
+                        pathname: '/recipe/[recipeId]',
+                        params: {
+                          recipeId: id,
+                          servings: String(totalServings),
+                          lastsDays: String(lastsDays),
+                          diners: String(currentDiners),
+                        },
+                      });
                     }}
                   >
                     <Ionicons name="book-outline" size={18} color="#FFFFFF" />

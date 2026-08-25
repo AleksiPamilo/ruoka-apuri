@@ -23,4 +23,6 @@ export interface Recipe {
     instructions?: string[];
     planStartDay?: number;
     lastsDays?: number;
+    diners?: number;
+    targetServings?: number;
 }

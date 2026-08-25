@@ -13,7 +13,12 @@ const dayLabels = ['Maanantai', 'Tiistai', 'Keskiviikko', 'Torstai', 'Perjantai'
 const shortDayLabels = ['Ma', 'Ti', 'Ke', 'To', 'Pe', 'La', 'Su'];
 
 export default function RecipeScreen() {
-  const { recipeId } = useLocalSearchParams<{ recipeId: string }>();
+  const { recipeId, servings: servingsParam, lastsDays: lastsDaysParam, diners: dinersParam } = useLocalSearchParams<{
+    recipeId: string;
+    servings?: string;
+    lastsDays?: string;
+    diners?: string;
+  }>();
   const { colors } = useAppTheme();
   
   const [recipe, setRecipe] = useState<Recipe | null>(null);
@@ -30,14 +35,15 @@ export default function RecipeScreen() {
       const data = await getRecipeById(recipeId);
       if (data) {
         setRecipe(data);
-        setServings(data.servings_per_batch || 4);
+        const initialServings = servingsParam ? parseInt(servingsParam, 10) : (data.servings_per_batch || 4);
+        setServings(isNaN(initialServings) || initialServings <= 0 ? (data.servings_per_batch || 4) : initialServings);
         setUserRating(data.rating || 0);
       }
       setLoading(false);
     };
 
     loadRecipe();
-  }, [recipeId]);
+  }, [recipeId, servingsParam]);
 
   const handleAddRecipeToDay = async (dayIndex: number) => {
     if (!recipe) return;
@@ -56,11 +62,22 @@ export default function RecipeScreen() {
         }
       }
 
-      const lastsDays = Math.max(1, Math.min(7 - dayIndex, Math.floor((recipe.servings_per_batch || 4) / servings)));
+      const explicitLasts = lastsDaysParam ? parseInt(lastsDaysParam, 10) : null;
+      const computedLasts = explicitLasts && !isNaN(explicitLasts)
+        ? explicitLasts
+        : (recipe.isMealPrep ? Math.min(7 - dayIndex, 2) : 1);
+      const lastsDays = Math.max(1, Math.min(7 - dayIndex, computedLasts));
+      const explicitDiners = dinersParam ? parseInt(dinersParam, 10) : null;
+      const currentDiners = explicitDiners && !isNaN(explicitDiners)
+        ? explicitDiners
+        : Math.max(1, Math.round(servings / lastsDays));
+
       const newEntry: Recipe = {
         ...recipe,
         planStartDay: dayIndex,
         lastsDays,
+        diners: currentDiners,
+        targetServings: servings,
       };
 
       const filtered = currentPlanRecipes.filter((r, idx) => (r.planStartDay ?? idx) !== dayIndex);

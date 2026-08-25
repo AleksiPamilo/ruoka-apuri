@@ -94,26 +94,31 @@ export function generateShoppingListFromPlan(
   recipes.forEach((recipe) => {
     if (!recipe.ingredients) return;
 
+    const baseServings = recipe.servings_per_batch || 4;
+    const totalServings = recipe.targetServings || ((recipe.lastsDays || 1) * (recipe.diners || 4));
+    const scale = totalServings > 0 && baseServings > 0 ? (totalServings / baseServings) : 1;
+
     recipe.ingredients.forEach((ing) => {
       let name = '';
-      let amount: number | undefined;
+      let rawAmount: number | undefined;
       let unit: string | undefined;
       let categoryId: string = 'other';
 
       if (typeof ing === 'string') {
         const parsed = parseIngredientString(ing);
         name = parsed.name;
-        amount = parsed.amount;
+        rawAmount = parsed.amount;
         unit = parsed.unit;
       } else {
         name = ing.name;
-        amount = ing.amount;
+        rawAmount = ing.amount;
         unit = ing.unit;
         categoryId = ing.categoryId || 'other';
       }
 
       if (!name) return;
 
+      const amount = rawAmount !== undefined ? Math.round(rawAmount * scale * 10) / 10 : undefined;
       const normName = normalizeIngredientName(name);
       const existing = ingredientMap.get(normName);
 

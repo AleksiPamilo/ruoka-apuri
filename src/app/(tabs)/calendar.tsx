@@ -165,7 +165,16 @@ export default function CalendarScreen() {
     if (editMode) {
       toggleSelect(key);
     } else {
-      router.push({ pathname: '/recipe/[recipeId]', params: { recipeId: recipe.id } });
+      const totalServings = recipe.targetServings || ((recipe.lastsDays || 1) * (recipe.diners || 4));
+      router.push({
+        pathname: '/recipe/[recipeId]',
+        params: {
+          recipeId: recipe.id,
+          servings: String(totalServings),
+          lastsDays: String(recipe.lastsDays || 1),
+          diners: String(recipe.diners || 4),
+        },
+      });
     }
   };
 
@@ -395,8 +404,14 @@ export default function CalendarScreen() {
                 </View>
                 <Text style={[styles.recipeTitle, { color: colors.text }]}>{recipe.title}</Text>
                 <Text style={[styles.recipeMeta, { color: colors.mutedText }]}>
-                  {recipe.servings_per_batch} annosta
-                  {recipe.lastsDays ? ` • Riittää ${recipe.lastsDays} päivää` : recipe.isMealPrep ? ' • Meal Prep' : ''}
+                  {(() => {
+                    const totalServings = recipe.targetServings || ((recipe.lastsDays || 1) * (recipe.diners || 4));
+                    const days = recipe.lastsDays || 1;
+                    if (days > 1) {
+                      return `${totalServings} annosta • Riittää ${days} päivää`;
+                    }
+                    return `${totalServings} annosta${recipe.isMealPrep ? ' • Meal Prep' : ''}`;
+                  })()}
                 </Text>
               </Pressable>
             );
