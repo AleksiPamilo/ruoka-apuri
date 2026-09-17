@@ -5,8 +5,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Recipe } from '../../types/recipe';
+import { Household } from '../../types/household';
 import { useAppTheme } from '../../theme/AppThemeProvider';
 import { showAppAlert } from '../../components/AlertProvider';
+import {
+  fetchHouseholdPlan,
+  getActiveHousehold,
+  saveHouseholdPlan,
+  subscribeToHouseholdPlan,
+} from '../../services/householdService';
+import HouseholdModal from '../../components/HouseholdModal';
 
 const SAVED_PLAN_KEY = 'ruoka-apuri.saved-weekly-plan';
 const SAVED_TEMPLATES_KEY = 'ruoka-apuri.saved-plan-templates';
@@ -28,6 +36,8 @@ type PlanTemplate = {
 export default function CalendarScreen() {
   const [plan, setPlan] = useState<Recipe[]>([]);
   const [proteinIds, setProteinIds] = useState<string[]>([]);
+  const [household, setHousehold] = useState<Household | null>(null);
+  const [householdModalVisible, setHouseholdModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
@@ -108,6 +118,11 @@ export default function CalendarScreen() {
     const payload: SavedPlan = { proteinIds, recipes: nextRecipes };
     await AsyncStorage.setItem(SAVED_PLAN_KEY, JSON.stringify(payload));
     setPlan(nextRecipes);
+
+    const currentHousehold = await getActiveHousehold();
+    if (currentHousehold) {
+      await saveHouseholdPlan(currentHousehold.id, nextRecipes, proteinIds);
+    }
   };
 
   const loadTemplates = useCallback(async () => {
@@ -125,6 +140,25 @@ export default function CalendarScreen() {
 
   const loadPlan = useCallback(async () => {
     setLoading(true);
+    const currentHousehold = await getActiveHousehold();
+    setHousehold(currentHousehold);
+
+    if (currentHousehold) {
+      const householdPlan = await fetchHouseholdPlan(currentHousehold.id);
+      if (householdPlan && householdPlan.recipes.length > 0) {
+        setPlan(householdPlan.recipes);
+        setProteinIds(householdPlan.proteinIds || []);
+        await AsyncStorage.setItem(
+          SAVED_PLAN_KEY,
+          JSON.stringify({ proteinIds: householdPlan.proteinIds || [], recipes: householdPlan.recipes })
+        );
+        setEditMode(false);
+        setSelectedKeys([]);
+        setLoading(false);
+        return;
+      }
+    }
+
     const storedPlan = await AsyncStorage.getItem(SAVED_PLAN_KEY);
     if (storedPlan) {
       const parsedPlan = JSON.parse(storedPlan);
@@ -215,6 +249,11 @@ export default function CalendarScreen() {
             setProteinIds([]);
             setSelectedKeys([]);
             setEditMode(false);
+
+            const currentHousehold = await getActiveHousehold();
+            if (currentHousehold) {
+              await saveHouseholdPlan(currentHousehold.id, [], []);
+            }
           },
         },
       ]
@@ -267,6 +306,22 @@ export default function CalendarScreen() {
     useCallback(() => {
       loadPlan();
       loadTemplates();
+
+      let unsubscribe: (() => void) | null = null;
+      getActiveHousehold().then((h) => {
+        setHousehold(h);
+        if (h) {
+          unsubscribe = subscribeToHouseholdPlan(h.id, () => {
+            loadPlan();
+          });
+        }
+      });
+
+      return () => {
+        if (unsubscribe) {
+          unsubscribe();
+        }
+      };
     }, [loadPlan, loadTemplates])
   );
 
@@ -275,7 +330,19 @@ export default function CalendarScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.titleRow}>
           <View style={styles.titleTextContainer}>
-            <Text style={[styles.title, { color: colors.text }]}>Kalenteri</Text>
+            <View style={styles.titleWithBadge}>
+              <Text style={[styles.title, { color: colors.text }]}>Kalenteri</Text>
+              {household ? (
+                <Pressable
+                  style={[styles.householdBadge, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}40` }]}
+                  onPress={() => setHouseholdModalVisible(true)}
+                  hitSlop={8}
+                >
+                  <View style={[styles.onlineDot, { backgroundColor: colors.success }]} />
+                  <Text style={[styles.householdBadgeText, { color: colors.primary }]}>Jaettu</Text>
+                </Pressable>
+              ) : null}
+            </View>
             <Text style={[styles.subtitle, { color: colors.mutedText }]}>
               {editMode
                 ? `Valittu ${selectedKeys.length} / ${plan.length}`
@@ -472,6 +539,24 @@ export default function CalendarScreen() {
                 <View style={styles.modalHandle} />
               </View>
               <Text style={[styles.actionSheetTitle, { color: colors.mutedText }]}>Valinnat</Text>
+
+              <Pressable
+                style={styles.actionSheetRow}
+                onPress={() => {
+                  setOptionsMenuVisible(false);
+                  setHouseholdModalVisible(true);
+                }}
+              >
+                <View style={[styles.actionIconContainer, { backgroundColor: colors.background }]}>
+                  <Ionicons name="people-outline" size={20} color={colors.primary} />
+                </View>
+                <View style={styles.actionTextContainer}>
+                  <Text style={[styles.actionRowTitle, { color: colors.text }]}>Jaettu talous</Text>
+                  <Text style={[styles.actionRowSubtitle, { color: colors.mutedText }]}>
+                    {household ? `Yhdistetty: ${household.code}` : 'Jaa kalenteri kumppanille tai perheelle'}
+                  </Text>
+                </View>
+              </Pressable>
 
               <Pressable
                 style={styles.actionSheetRow}
@@ -702,6 +787,12 @@ export default function CalendarScreen() {
           </View>
         </View>
       </Modal>
+
+      <HouseholdModal
+        visible={householdModalVisible}
+        onClose={() => setHouseholdModalVisible(false)}
+        onHouseholdChanged={loadPlan}
+      />
     </SafeAreaView>
   );
 }
@@ -718,7 +809,32 @@ const styles = StyleSheet.create({
   titleTextContainer: {
     flex: 1,
   },
-  title: { fontSize: 28, fontWeight: '700', marginBottom: 6 },
+  titleWithBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 6,
+  },
+  householdBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  onlineDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  householdBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  title: { fontSize: 28, fontWeight: '700' },
   subtitle: { fontSize: 14 },
   headerRightContainer: {
     flexDirection: 'row',
@@ -871,6 +987,19 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 20,
   },
+  dragHandleArea: {
+    width: '100%',
+    paddingTop: 4,
+    paddingBottom: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalHandle: {
+    width: 38,
+    height: 4.5,
+    borderRadius: 2.5,
+    backgroundColor: 'rgba(128, 128, 128, 0.4)',
+  },
   actionSheetTitle: {
     fontSize: 13,
     fontWeight: '600',
@@ -985,19 +1114,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 16,
     elevation: 20,
-  },
-  dragHandleArea: {
-    width: '100%',
-    paddingTop: 4,
-    paddingBottom: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalHandle: {
-    width: 38,
-    height: 4.5,
-    borderRadius: 2.5,
-    backgroundColor: 'rgba(128, 128, 128, 0.4)',
   },
   sheetHeader: {
     flexDirection: 'row',

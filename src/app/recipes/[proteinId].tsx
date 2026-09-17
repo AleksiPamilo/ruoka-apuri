@@ -9,6 +9,7 @@ import { Recipe, IngredientItem } from '../../types/recipe';
 import { useAppTheme } from '../../theme/AppThemeProvider';
 import { DEFAULT_SERVINGS_KEY } from '../(tabs)/settings';
 import { showAppAlert } from '../../components/AlertProvider';
+import { getActiveHousehold, saveHouseholdPlan } from '../../services/householdService';
 
 const SAVED_PLAN_KEY = 'ruoka-apuri.saved-weekly-plan';
 const dayLabels = ['Maanantai', 'Tiistai', 'Keskiviikko', 'Torstai', 'Perjantai', 'Lauantai', 'Sunnuntai'];
@@ -325,6 +326,10 @@ export default function RecipeGeneratorScreen() {
       SAVED_PLAN_KEY,
       JSON.stringify({ proteinIds: proteinIdsToSave, recipes: recipesToSave })
     );
+    const currentHousehold = await getActiveHousehold();
+    if (currentHousehold) {
+      await saveHouseholdPlan(currentHousehold.id, recipesToSave, proteinIdsToSave);
+    }
     setSavedPlan(recipesToSave);
     router.replace('/calendar');
   };
@@ -517,6 +522,11 @@ export default function RecipeGeneratorScreen() {
         SAVED_PLAN_KEY,
         JSON.stringify({ proteinIds: currentProteinIds, recipes: updatedList })
       );
+
+      const currentHousehold = await getActiveHousehold();
+      if (currentHousehold) {
+        await saveHouseholdPlan(currentHousehold.id, updatedList, currentProteinIds);
+      }
 
       setAddedDayFeedback(dayLabels[dayIndex]);
       setTimeout(() => {

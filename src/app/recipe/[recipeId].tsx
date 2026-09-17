@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { getRecipeById, updateRecipeRating } from '../../services/recipeService';
 import { Recipe, IngredientItem } from '../../types/recipe';
 import { useAppTheme } from '../../theme/AppThemeProvider';
+import { getActiveHousehold, saveHouseholdPlan } from '../../services/householdService';
 
 const SAVED_PLAN_KEY = 'ruoka-apuri.saved-weekly-plan';
 const dayLabels = ['Maanantai', 'Tiistai', 'Keskiviikko', 'Torstai', 'Perjantai', 'Lauantai', 'Sunnuntai'];
@@ -89,6 +90,11 @@ export default function RecipeScreen() {
         SAVED_PLAN_KEY,
         JSON.stringify({ proteinIds: currentProteinIds, recipes: updatedList })
       );
+
+      const currentHousehold = await getActiveHousehold();
+      if (currentHousehold) {
+        await saveHouseholdPlan(currentHousehold.id, updatedList, currentProteinIds);
+      }
 
       setAddedDayFeedback(dayLabels[dayIndex]);
       setTimeout(() => {

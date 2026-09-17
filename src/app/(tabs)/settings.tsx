@@ -1,9 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Switch, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from 'expo-router';
 import { useAppTheme } from '../../theme/AppThemeProvider';
 import { Ionicons } from '@expo/vector-icons';
+import { Household } from '../../types/household';
+import { getActiveHousehold } from '../../services/householdService';
+import HouseholdModal from '../../components/HouseholdModal';
 
 import packageJson from '../../../package.json';
 
@@ -12,19 +16,30 @@ export const DEFAULT_SERVINGS_KEY = 'ruoka-apuri.default-servings';
 export default function SettingsScreen() {
   const { colors, isDark, setDarkMode } = useAppTheme();
   const [defaultServings, setDefaultServings] = useState<number>(4);
+  const [household, setHousehold] = useState<Household | null>(null);
+  const [householdModalVisible, setHouseholdModalVisible] = useState(false);
+
+  const loadSettings = useCallback(async () => {
+    const stored = await AsyncStorage.getItem(DEFAULT_SERVINGS_KEY);
+    if (stored) {
+      const val = parseInt(stored, 10);
+      if (!isNaN(val) && val > 0) {
+        setDefaultServings(val);
+      }
+    }
+    const currentHousehold = await getActiveHousehold();
+    setHousehold(currentHousehold);
+  }, []);
 
   useEffect(() => {
-    const loadDefaultServings = async () => {
-      const stored = await AsyncStorage.getItem(DEFAULT_SERVINGS_KEY);
-      if (stored) {
-        const val = parseInt(stored, 10);
-        if (!isNaN(val) && val > 0) {
-          setDefaultServings(val);
-        }
-      }
-    };
-    loadDefaultServings();
-  }, []);
+    loadSettings();
+  }, [loadSettings]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadSettings();
+    }, [loadSettings])
+  );
 
   const updateDefaultServings = async (newVal: number) => {
     const clamped = Math.max(1, Math.min(12, newVal));
@@ -37,9 +52,34 @@ export default function SettingsScreen() {
       <View style={styles.titleRow}>
         <Text style={[styles.pageTitle, { color: colors.text }]}>Asetukset</Text>
         <Text style={[styles.pageSubtitle, { color: colors.mutedText }]}>
-          Määritä sovelluksen ulkoasu ja annoskoko.
+          Määritä sovelluksen ulkoasu, talous ja annoskoko.
         </Text>
       </View>
+
+      <Pressable
+        style={[styles.card, { backgroundColor: colors.card }]}
+        onPress={() => setHouseholdModalVisible(true)}
+      >
+        <View style={styles.cardHeader}>
+          <View style={styles.textGroup}>
+            <View style={styles.inlineHeader}>
+              <Ionicons name="people" size={18} color={colors.primary} />
+              <Text style={[styles.title, { color: colors.text }]}>Jaettu talous</Text>
+            </View>
+            <Text style={[styles.subtitle, { color: colors.mutedText }]}>
+              {household
+                ? `Yhdistetty: ${household.code} (${household.name})`
+                : 'Jaa ostoslista ja kalenteri ilman kirjautumista'}
+            </Text>
+          </View>
+          <View style={styles.cardRightAction}>
+            {household ? (
+              <View style={[styles.activeDot, { backgroundColor: colors.success }]} />
+            ) : null}
+            <Ionicons name="chevron-forward" size={18} color={colors.mutedText} />
+          </View>
+        </View>
+      </Pressable>
 
       <View style={[styles.card, { backgroundColor: colors.card }]}>
         <View style={styles.cardHeader}>
@@ -85,6 +125,12 @@ export default function SettingsScreen() {
           <Text style={[styles.infoValue, { color: colors.text }]}>GNU GPLv3</Text>
         </View>
       </View>
+
+      <HouseholdModal
+        visible={householdModalVisible}
+        onClose={() => setHouseholdModalVisible(false)}
+        onHouseholdChanged={loadSettings}
+      />
     </SafeAreaView>
   );
 }
@@ -115,7 +161,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  inlineHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   textGroup: { flex: 1, marginRight: 12 },
+  cardRightAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  activeDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
   title: { fontSize: 16, fontWeight: '600' },
   subtitle: { fontSize: 13, marginTop: 2 },
   stepper: { flexDirection: 'row', alignItems: 'center', borderRadius: 10, padding: 4 },

@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabaseClient';
 import { Recipe } from '../types/recipe';
 import { CategoryInfo, ShoppingItem } from '../types/shoppingList';
+import { getActiveHousehold, fetchHouseholdShoppingItems, saveHouseholdShoppingItems } from './householdService';
 
 export const SHOPPING_LIST_STORAGE_KEY = 'ruoka-apuri.shopping-list';
 export const CATEGORIES_CACHE_KEY = 'ruoka-apuri.shopping-categories';
@@ -152,6 +153,15 @@ export function generateShoppingListFromPlan(
 
 export async function loadShoppingList(): Promise<ShoppingItem[]> {
   try {
+    const household = await getActiveHousehold();
+    if (household) {
+      const dbItems = await fetchHouseholdShoppingItems(household.id);
+      if (dbItems.length > 0) {
+        await AsyncStorage.setItem(SHOPPING_LIST_STORAGE_KEY, JSON.stringify(dbItems));
+        return dbItems;
+      }
+    }
+
     const raw = await AsyncStorage.getItem(SHOPPING_LIST_STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
@@ -165,6 +175,10 @@ export async function loadShoppingList(): Promise<ShoppingItem[]> {
 export async function saveShoppingList(items: ShoppingItem[]): Promise<void> {
   try {
     await AsyncStorage.setItem(SHOPPING_LIST_STORAGE_KEY, JSON.stringify(items));
+    const household = await getActiveHousehold();
+    if (household) {
+      await saveHouseholdShoppingItems(household.id, items);
+    }
   } catch (e) {
     console.error(e);
   }

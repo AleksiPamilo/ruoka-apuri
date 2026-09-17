@@ -21,6 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../theme/AppThemeProvider';
 import { Recipe } from '../../types/recipe';
 import { CategoryInfo, ShoppingItem } from '../../types/shoppingList';
+import { Household } from '../../types/household';
 import { showAppAlert } from '../../components/AlertProvider';
 import {
   fetchShoppingCategories,
@@ -30,6 +31,11 @@ import {
   loadShoppingList,
   saveShoppingList,
 } from '../../services/shoppingListService';
+import {
+  getActiveHousehold,
+  subscribeToHouseholdShopping,
+} from '../../services/householdService';
+import HouseholdModal from '../../components/HouseholdModal';
 
 const SAVED_PLAN_KEY = 'ruoka-apuri.saved-weekly-plan';
 
@@ -37,6 +43,8 @@ export default function ShoppingListScreen() {
   const { colors } = useAppTheme();
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [categories, setCategories] = useState<CategoryInfo[]>([]);
+  const [household, setHousehold] = useState<Household | null>(null);
+  const [householdModalVisible, setHouseholdModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [inputText, setInputText] = useState('');
   const [optionsMenuVisible, setOptionsMenuVisible] = useState(false);
@@ -81,11 +89,13 @@ export default function ShoppingListScreen() {
 
   const loadData = useCallback(async () => {
     try {
-      const [fetchedCats, savedItems] = await Promise.all([
+      const [fetchedCats, savedItems, currentHousehold] = await Promise.all([
         fetchShoppingCategories(),
         loadShoppingList(),
+        getActiveHousehold(),
       ]);
       setCategories(fetchedCats);
+      setHousehold(currentHousehold);
 
       if (savedItems.length > 0) {
         setItems(savedItems);
@@ -115,6 +125,24 @@ export default function ShoppingListScreen() {
   useFocusEffect(
     useCallback(() => {
       loadData();
+
+      let unsubscribe: (() => void) | null = null;
+      getActiveHousehold().then((h) => {
+        setHousehold(h);
+        if (h) {
+          unsubscribe = subscribeToHouseholdShopping(h.id, () => {
+            loadShoppingList().then((updated) => {
+              setItems(updated);
+            });
+          });
+        }
+      });
+
+      return () => {
+        if (unsubscribe) {
+          unsubscribe();
+        }
+      };
     }, [loadData])
   );
 
@@ -259,7 +287,19 @@ export default function ShoppingListScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <View style={styles.titleRow}>
             <View style={styles.titleTextContainer}>
-              <Text style={[styles.title, { color: colors.text }]}>Ostoslista</Text>
+              <View style={styles.titleWithBadge}>
+                <Text style={[styles.title, { color: colors.text }]}>Ostoslista</Text>
+                {household ? (
+                  <Pressable
+                    style={[styles.householdBadge, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}40` }]}
+                    onPress={() => setHouseholdModalVisible(true)}
+                    hitSlop={8}
+                  >
+                    <View style={[styles.onlineDot, { backgroundColor: colors.success }]} />
+                    <Text style={[styles.householdBadgeText, { color: colors.primary }]}>Jaettu</Text>
+                  </Pressable>
+                ) : null}
+              </View>
               <Text style={[styles.subtitle, { color: colors.mutedText }]}>
                 {items.length === 0
                   ? 'Ei tuotteita listalla'
@@ -278,361 +318,261 @@ export default function ShoppingListScreen() {
             </Pressable>
           </View>
 
-        <View style={[styles.quickAddCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <TextInput
-            style={[styles.quickAddInput, { color: colors.text }]}
-            placeholder="Lisää tuote... esim. Kahvi, WC-paperi, Maito"
-            placeholderTextColor={colors.mutedText}
-            value={inputText}
-            onChangeText={setInputText}
-            onSubmitEditing={handleAddItem}
-            returnKeyType="done"
-          />
-          <Pressable
-            style={[
-              styles.quickAddBtn,
-              { backgroundColor: inputText.trim() ? colors.primary : colors.background },
-            ]}
-            onPress={handleAddItem}
-            disabled={!inputText.trim()}
-          >
-            <Ionicons
-              name="add"
-              size={22}
-              color={inputText.trim() ? '#FFFFFF' : colors.mutedText}
+          <View style={[styles.quickAddCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <TextInput
+              style={[styles.quickAddInput, { color: colors.text }]}
+              placeholder="Lisää tuote... esim. Kahvi, WC-paperi, Maito"
+              placeholderTextColor={colors.mutedText}
+              value={inputText}
+              onChangeText={setInputText}
+              onSubmitEditing={handleAddItem}
+              returnKeyType="done"
             />
-          </Pressable>
-        </View>
-
-        {loading ? (
-          <ActivityIndicator style={styles.loader} color={colors.primary} />
-        ) : items.length === 0 ? (
-          <View style={styles.emptyState}>
-            <View style={[styles.emptyIconBg, { backgroundColor: colors.card }]}>
-              <Ionicons name="cart-outline" size={44} color={colors.primary} />
-            </View>
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>Ostoslista on tyhjä</Text>
-            <Text style={[styles.emptyText, { color: colors.mutedText }]}>
-              Kirjoita tuotteita yläpalkkiin tai tuo ainekset aktiivisesta ateriasuunnitelmastasi.
-            </Text>
             <Pressable
-              style={[styles.emptyPrimaryBtn, { backgroundColor: colors.primary }]}
-              onPress={handleSyncFromCalendar}
+              style={[
+                styles.quickAddBtn,
+                { backgroundColor: inputText.trim() ? colors.primary : colors.background },
+              ]}
+              onPress={handleAddItem}
+              disabled={!inputText.trim()}
             >
-              <Ionicons name="refresh-outline" size={18} color="#FFFFFF" />
-              <Text style={styles.emptyPrimaryBtnText}>Tuo ainekset kalenterista</Text>
+              <Ionicons
+                name="add"
+                size={22}
+                color={inputText.trim() ? '#FFFFFF' : colors.mutedText}
+              />
             </Pressable>
           </View>
-        ) : (
-          <View style={styles.listContainer}>
-            {categories.length === 0 && !loading && (
-              <View style={[styles.warningBanner, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <Ionicons name="warning-outline" size={18} color="#FF9500" />
-                <Text style={[styles.warningBannerText, { color: colors.text }]}>
-                  Kategorioita ei saatu ladattua tietokannasta.
-                </Text>
+
+          {loading ? (
+            <ActivityIndicator style={styles.loader} color={colors.primary} />
+          ) : items.length === 0 ? (
+            <View style={styles.emptyState}>
+              <View style={[styles.emptyIconBg, { backgroundColor: colors.card }]}>
+                <Ionicons name="cart-outline" size={44} color={colors.primary} />
               </View>
-            )}
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>Ostoslista on tyhjä</Text>
+              <Text style={[styles.emptyText, { color: colors.mutedText }]}>
+                Kirjoita tuotteita yläpalkkiin tai tuo ainekset aktiivisesta ateriasuunnitelmastasi.
+              </Text>
+              <Pressable
+                style={[styles.emptyPrimaryBtn, { backgroundColor: colors.primary }]}
+                onPress={handleSyncFromCalendar}
+              >
+                <Ionicons name="refresh-outline" size={18} color="#FFFFFF" />
+                <Text style={styles.emptyPrimaryBtnText}>Tuo ainekset kalenterista</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <View style={styles.listContainer}>
+              {categories.length === 0 && !loading && (
+                <View style={[styles.warningBanner, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <Ionicons name="warning-outline" size={18} color="#FF9500" />
+                  <Text style={[styles.warningBannerText, { color: colors.text }]}>
+                    Kategorioita ei saatu ladattua tietokannasta.
+                  </Text>
+                </View>
+              )}
 
-            {categories.length > 0 ? (
-              <>
-                {categories.map((catInfo) => {
-                  const catItems = activeItems.filter((i) => i.category === catInfo.id);
-                  if (catItems.length === 0) return null;
+              {categories.length > 0 ? (
+                <>
+                  {categories.map((catInfo) => {
+                    const catItems = activeItems.filter((i) => i.category === catInfo.id);
+                    if (catItems.length === 0) return null;
 
-                  return (
-                    <View key={catInfo.id} style={styles.categorySection}>
-                      <View style={styles.categoryHeader}>
-                        <View style={styles.categoryHeaderLeft}>
-                          <View style={[styles.categoryIconBg, { backgroundColor: `${catInfo.color}15` }]}>
-                            <Ionicons name={catInfo.icon as any} size={15} color={catInfo.color} />
-                          </View>
-                          <Text style={[styles.categoryTitle, { color: colors.text }]}>{catInfo.name}</Text>
-                        </View>
-                        <View style={[styles.categoryBadge, { backgroundColor: colors.card }]}>
-                          <Text style={[styles.categoryBadgeText, { color: colors.mutedText }]}>
-                            {catItems.length}
-                          </Text>
-                        </View>
-                      </View>
-
-                      <View style={[styles.categoryCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                        {catItems.map((item, index) => {
-                          const isLast = index === catItems.length - 1;
-                          return (
-                            <View
-                              key={item.id}
-                              style={[
-                                styles.itemRow,
-                                !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
-                              ]}
-                            >
-                              <Pressable
-                                style={styles.itemCheckboxContainer}
-                                onPress={() => handleToggleCheck(item.id)}
-                                hitSlop={8}
-                              >
-                                <View
-                                  style={[
-                                    styles.checkbox,
-                                    { borderColor: item.checked ? colors.primary : colors.border },
-                                    item.checked && { backgroundColor: colors.primary },
-                                  ]}
-                                >
-                                  {item.checked && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
-                                </View>
-                              </Pressable>
-
-                              <Pressable
-                                style={styles.itemContent}
-                                onPress={() => openEditModal(item)}
-                              >
-                                <View style={styles.itemNameRow}>
-                                  <Text
-                                    style={[
-                                      styles.itemName,
-                                      { color: item.checked ? colors.mutedText : colors.text },
-                                      item.checked && styles.itemNameChecked,
-                                    ]}
-                                    numberOfLines={1}
-                                  >
-                                    {item.name}
-                                  </Text>
-                                  {item.amount ? (
-                                    <Text style={[styles.itemAmount, { color: colors.primary }]}>
-                                      {item.amount} {item.unit || ''}
-                                    </Text>
-                                  ) : null}
-                                </View>
-
-                                {item.recipeTitle ? (
-                                  <Text style={[styles.itemRecipeTag, { color: colors.mutedText }]} numberOfLines={1}>
-                                    {item.recipeTitle}
-                                  </Text>
-                                ) : item.isCustom ? (
-                                  <Text style={[styles.itemCustomTag, { color: colors.mutedText }]}>
-                                    Oma lisäys
-                                  </Text>
-                                ) : null}
-                              </Pressable>
-
-                              <Pressable
-                                style={styles.itemDeleteBtn}
-                                onPress={() => handleDeleteItem(item.id)}
-                                hitSlop={8}
-                              >
-                                <Ionicons name="trash-outline" size={17} color={colors.mutedText} />
-                              </Pressable>
-                            </View>
-                          );
-                        })}
-                      </View>
-                    </View>
-                  );
-                })}
-
-                {(() => {
-                  const unmappedItems = activeItems.filter(
-                    (i) => !categories.some((c) => c.id === i.category)
-                  );
-                  if (unmappedItems.length === 0) return null;
-
-                  return (
-                    <View style={styles.categorySection}>
-                      <View style={styles.categoryHeader}>
-                        <View style={styles.categoryHeaderLeft}>
-                          <View style={[styles.categoryIconBg, { backgroundColor: '#8E8E9315' }]}>
-                            <Ionicons name="basket-outline" size={15} color="#8E8E93" />
-                          </View>
-                          <Text style={[styles.categoryTitle, { color: colors.text }]}>Muut tuotteet</Text>
-                        </View>
-                        <View style={[styles.categoryBadge, { backgroundColor: colors.card }]}>
-                          <Text style={[styles.categoryBadgeText, { color: colors.mutedText }]}>
-                            {unmappedItems.length}
-                          </Text>
-                        </View>
-                      </View>
-
-                      <View style={[styles.categoryCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                        {unmappedItems.map((item, index) => {
-                          const isLast = index === unmappedItems.length - 1;
-                          return (
-                            <View
-                              key={item.id}
-                              style={[
-                                styles.itemRow,
-                                !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
-                              ]}
-                            >
-                              <Pressable
-                                style={styles.itemCheckboxContainer}
-                                onPress={() => handleToggleCheck(item.id)}
-                                hitSlop={8}
-                              >
-                                <View
-                                  style={[
-                                    styles.checkbox,
-                                    { borderColor: item.checked ? colors.primary : colors.border },
-                                    item.checked && { backgroundColor: colors.primary },
-                                  ]}
-                                >
-                                  {item.checked && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
-                                </View>
-                              </Pressable>
-
-                              <Pressable
-                                style={styles.itemContent}
-                                onPress={() => openEditModal(item)}
-                              >
-                                <View style={styles.itemNameRow}>
-                                  <Text
-                                    style={[
-                                      styles.itemName,
-                                      { color: item.checked ? colors.mutedText : colors.text },
-                                      item.checked && styles.itemNameChecked,
-                                    ]}
-                                    numberOfLines={1}
-                                  >
-                                    {item.name}
-                                  </Text>
-                                  {item.amount ? (
-                                    <Text style={[styles.itemAmount, { color: colors.primary }]}>
-                                      {item.amount} {item.unit || ''}
-                                    </Text>
-                                  ) : null}
-                                </View>
-
-                                {item.recipeTitle ? (
-                                  <Text style={[styles.itemRecipeTag, { color: colors.mutedText }]} numberOfLines={1}>
-                                    {item.recipeTitle}
-                                  </Text>
-                                ) : item.isCustom ? (
-                                  <Text style={[styles.itemCustomTag, { color: colors.mutedText }]}>
-                                    Oma lisäys
-                                  </Text>
-                                ) : null}
-                              </Pressable>
-
-                              <Pressable
-                                style={styles.itemDeleteBtn}
-                                onPress={() => handleDeleteItem(item.id)}
-                                hitSlop={8}
-                              >
-                                <Ionicons name="trash-outline" size={17} color={colors.mutedText} />
-                              </Pressable>
-                            </View>
-                          );
-                        })}
-                      </View>
-                    </View>
-                  );
-                })()}
-              </>
-            ) : (
-              <View style={styles.categorySection}>
-                <View style={[styles.categoryCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                  {activeItems.map((item, index) => {
-                    const isLast = index === activeItems.length - 1;
                     return (
-                      <View
-                        key={item.id}
-                        style={[
-                          styles.itemRow,
-                          !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
-                        ]}
-                      >
-                        <Pressable
-                          style={styles.itemCheckboxContainer}
-                          onPress={() => handleToggleCheck(item.id)}
-                          hitSlop={8}
-                        >
-                          <View
-                            style={[
-                              styles.checkbox,
-                              { borderColor: item.checked ? colors.primary : colors.border },
-                              item.checked && { backgroundColor: colors.primary },
-                            ]}
-                          >
-                            {item.checked && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+                      <View key={catInfo.id} style={styles.categorySection}>
+                        <View style={styles.categoryHeader}>
+                          <View style={styles.categoryHeaderLeft}>
+                            <View style={[styles.categoryIconBg, { backgroundColor: `${catInfo.color}15` }]}>
+                              <Ionicons name={catInfo.icon as any} size={15} color={catInfo.color} />
+                            </View>
+                            <Text style={[styles.categoryTitle, { color: colors.text }]}>{catInfo.name}</Text>
                           </View>
-                        </Pressable>
-
-                        <Pressable
-                          style={styles.itemContent}
-                          onPress={() => openEditModal(item)}
-                        >
-                          <View style={styles.itemNameRow}>
-                            <Text
-                              style={[
-                                styles.itemName,
-                                { color: item.checked ? colors.mutedText : colors.text },
-                                item.checked && styles.itemNameChecked,
-                              ]}
-                              numberOfLines={1}
-                            >
-                              {item.name}
+                          <View style={[styles.categoryBadge, { backgroundColor: colors.card }]}>
+                            <Text style={[styles.categoryBadgeText, { color: colors.mutedText }]}>
+                              {catItems.length}
                             </Text>
-                            {item.amount ? (
-                              <Text style={[styles.itemAmount, { color: colors.primary }]}>
-                                {item.amount} {item.unit || ''}
-                              </Text>
-                            ) : null}
                           </View>
+                        </View>
 
-                          {item.recipeTitle ? (
-                            <Text style={[styles.itemRecipeTag, { color: colors.mutedText }]} numberOfLines={1}>
-                              {item.recipeTitle}
-                            </Text>
-                          ) : item.isCustom ? (
-                            <Text style={[styles.itemCustomTag, { color: colors.mutedText }]}>
-                              Oma lisäys
-                            </Text>
-                          ) : null}
-                        </Pressable>
+                        <View style={[styles.categoryCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                          {catItems.map((item, index) => {
+                            const isLast = index === catItems.length - 1;
+                            return (
+                              <View
+                                key={item.id}
+                                style={[
+                                  styles.itemRow,
+                                  !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+                                ]}
+                              >
+                                <Pressable
+                                  style={styles.itemCheckboxContainer}
+                                  onPress={() => handleToggleCheck(item.id)}
+                                  hitSlop={8}
+                                >
+                                  <View
+                                    style={[
+                                      styles.checkbox,
+                                      { borderColor: item.checked ? colors.primary : colors.border },
+                                      item.checked && { backgroundColor: colors.primary },
+                                    ]}
+                                  >
+                                    {item.checked && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+                                  </View>
+                                </Pressable>
 
-                        <Pressable
-                          style={styles.itemDeleteBtn}
-                          onPress={() => handleDeleteItem(item.id)}
-                          hitSlop={8}
-                        >
-                          <Ionicons name="trash-outline" size={17} color={colors.mutedText} />
-                        </Pressable>
+                                <Pressable
+                                  style={styles.itemContent}
+                                  onPress={() => openEditModal(item)}
+                                >
+                                  <View style={styles.itemNameRow}>
+                                    <Text
+                                      style={[
+                                        styles.itemName,
+                                        { color: item.checked ? colors.mutedText : colors.text },
+                                        item.checked && styles.itemNameChecked,
+                                      ]}
+                                      numberOfLines={1}
+                                    >
+                                      {item.name}
+                                    </Text>
+                                    {item.amount ? (
+                                      <Text style={[styles.itemAmount, { color: colors.primary }]}>
+                                        {item.amount} {item.unit || ''}
+                                      </Text>
+                                    ) : null}
+                                  </View>
+
+                                  {item.recipeTitle ? (
+                                    <Text style={[styles.itemRecipeTag, { color: colors.mutedText }]} numberOfLines={1}>
+                                      {item.recipeTitle}
+                                    </Text>
+                                  ) : item.isCustom ? (
+                                    <Text style={[styles.itemCustomTag, { color: colors.mutedText }]}>
+                                      Oma lisäys
+                                    </Text>
+                                  ) : null}
+                                </Pressable>
+
+                                <Pressable
+                                  style={styles.itemDeleteBtn}
+                                  onPress={() => handleDeleteItem(item.id)}
+                                  hitSlop={8}
+                                >
+                                  <Ionicons name="trash-outline" size={17} color={colors.mutedText} />
+                                </Pressable>
+                              </View>
+                            );
+                          })}
+                        </View>
                       </View>
                     );
                   })}
-                </View>
-              </View>
-            )}
 
-            {checkedItems.length > 0 && (
-              <View style={styles.completedSection}>
-                <Pressable
-                  style={styles.completedHeader}
-                  onPress={() => setCompletedCollapsed(!completedCollapsed)}
-                >
-                  <View style={styles.completedHeaderLeft}>
-                    <Ionicons
-                      name={completedCollapsed ? 'chevron-forward' : 'chevron-down'}
-                      size={18}
-                      color={colors.mutedText}
-                    />
-                    <Text style={[styles.completedTitle, { color: colors.mutedText }]}>
-                      Kerätyt tuotteet ({checkedItems.length})
-                    </Text>
-                  </View>
-                  <Pressable
-                    style={styles.clearCompletedTextBtn}
-                    onPress={handleClearCompleted}
-                    hitSlop={8}
-                  >
-                    <Text style={[styles.clearCompletedText, { color: '#FF3B30' }]}>Poista kerätyt</Text>
-                  </Pressable>
-                </Pressable>
+                  {(() => {
+                    const unmappedItems = activeItems.filter(
+                      (i) => !categories.some((c) => c.id === i.category)
+                    );
+                    if (unmappedItems.length === 0) return null;
 
-                {!completedCollapsed && (
-                  <View style={[styles.categoryCard, { backgroundColor: colors.card, borderColor: colors.border, opacity: 0.85 }]}>
-                    {checkedItems.map((item, index) => {
-                      const isLast = index === checkedItems.length - 1;
+                    return (
+                      <View style={styles.categorySection}>
+                        <View style={styles.categoryHeader}>
+                          <View style={styles.categoryHeaderLeft}>
+                            <View style={[styles.categoryIconBg, { backgroundColor: '#8E8E9315' }]}>
+                              <Ionicons name="basket-outline" size={15} color="#8E8E93" />
+                            </View>
+                            <Text style={[styles.categoryTitle, { color: colors.text }]}>Muut tuotteet</Text>
+                          </View>
+                          <View style={[styles.categoryBadge, { backgroundColor: colors.card }]}>
+                            <Text style={[styles.categoryBadgeText, { color: colors.mutedText }]}>
+                              {unmappedItems.length}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <View style={[styles.categoryCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                          {unmappedItems.map((item, index) => {
+                            const isLast = index === unmappedItems.length - 1;
+                            return (
+                              <View
+                                key={item.id}
+                                style={[
+                                  styles.itemRow,
+                                  !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+                                ]}
+                              >
+                                <Pressable
+                                  style={styles.itemCheckboxContainer}
+                                  onPress={() => handleToggleCheck(item.id)}
+                                  hitSlop={8}
+                                >
+                                  <View
+                                    style={[
+                                      styles.checkbox,
+                                      { borderColor: item.checked ? colors.primary : colors.border },
+                                      item.checked && { backgroundColor: colors.primary },
+                                    ]}
+                                  >
+                                    {item.checked && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+                                  </View>
+                                </Pressable>
+
+                                <Pressable
+                                  style={styles.itemContent}
+                                  onPress={() => openEditModal(item)}
+                                >
+                                  <View style={styles.itemNameRow}>
+                                    <Text
+                                      style={[
+                                        styles.itemName,
+                                        { color: item.checked ? colors.mutedText : colors.text },
+                                        item.checked && styles.itemNameChecked,
+                                      ]}
+                                      numberOfLines={1}
+                                    >
+                                      {item.name}
+                                    </Text>
+                                    {item.amount ? (
+                                      <Text style={[styles.itemAmount, { color: colors.primary }]}>
+                                        {item.amount} {item.unit || ''}
+                                      </Text>
+                                    ) : null}
+                                  </View>
+
+                                  {item.recipeTitle ? (
+                                    <Text style={[styles.itemRecipeTag, { color: colors.mutedText }]} numberOfLines={1}>
+                                      {item.recipeTitle}
+                                    </Text>
+                                  ) : item.isCustom ? (
+                                    <Text style={[styles.itemCustomTag, { color: colors.mutedText }]}>
+                                      Oma lisäys
+                                    </Text>
+                                  ) : null}
+                                </Pressable>
+
+                                <Pressable
+                                  style={styles.itemDeleteBtn}
+                                  onPress={() => handleDeleteItem(item.id)}
+                                  hitSlop={8}
+                                >
+                                  <Ionicons name="trash-outline" size={17} color={colors.mutedText} />
+                                </Pressable>
+                              </View>
+                            );
+                          })}
+                        </View>
+                      </View>
+                    );
+                  })()}
+                </>
+              ) : (
+                <View style={styles.categorySection}>
+                  <View style={[styles.categoryCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                    {activeItems.map((item, index) => {
+                      const isLast = index === activeItems.length - 1;
                       return (
                         <View
                           key={item.id}
@@ -646,22 +586,48 @@ export default function ShoppingListScreen() {
                             onPress={() => handleToggleCheck(item.id)}
                             hitSlop={8}
                           >
-                            <View style={[styles.checkbox, { borderColor: colors.primary, backgroundColor: colors.primary }]}>
-                              <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                            <View
+                              style={[
+                                styles.checkbox,
+                                { borderColor: item.checked ? colors.primary : colors.border },
+                                item.checked && { backgroundColor: colors.primary },
+                              ]}
+                            >
+                              {item.checked && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
                             </View>
                           </Pressable>
 
-                          <Pressable style={styles.itemContent} onPress={() => openEditModal(item)}>
+                          <Pressable
+                            style={styles.itemContent}
+                            onPress={() => openEditModal(item)}
+                          >
                             <View style={styles.itemNameRow}>
-                              <Text style={[styles.itemName, styles.itemNameChecked, { color: colors.mutedText }]} numberOfLines={1}>
+                              <Text
+                                style={[
+                                  styles.itemName,
+                                  { color: item.checked ? colors.mutedText : colors.text },
+                                  item.checked && styles.itemNameChecked,
+                                ]}
+                                numberOfLines={1}
+                              >
                                 {item.name}
                               </Text>
                               {item.amount ? (
-                                <Text style={[styles.itemAmount, { color: colors.mutedText }]}>
+                                <Text style={[styles.itemAmount, { color: colors.primary }]}>
                                   {item.amount} {item.unit || ''}
                                 </Text>
                               ) : null}
                             </View>
+
+                            {item.recipeTitle ? (
+                              <Text style={[styles.itemRecipeTag, { color: colors.mutedText }]} numberOfLines={1}>
+                                {item.recipeTitle}
+                              </Text>
+                            ) : item.isCustom ? (
+                              <Text style={[styles.itemCustomTag, { color: colors.mutedText }]}>
+                                Oma lisäys
+                              </Text>
+                            ) : null}
                           </Pressable>
 
                           <Pressable
@@ -675,189 +641,287 @@ export default function ShoppingListScreen() {
                       );
                     })}
                   </View>
-                )}
-              </View>
-            )}
-          </View>
-        )}
-      </ScrollView>
-
-      <Modal
-        visible={optionsMenuVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setOptionsMenuVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <Pressable style={styles.modalBackdrop} onPress={() => setOptionsMenuVisible(false)} />
-          <View style={styles.modalFrameContainer} pointerEvents="box-none">
-            <Animated.View
-              style={[
-                styles.actionSheet,
-                { backgroundColor: colors.card, transform: [{ translateY: optionsPanY }] },
-              ]}
-            >
-              <View style={styles.dragHandleArea} {...optionsPanResponder.panHandlers}>
-                <View style={styles.modalHandle} />
-              </View>
-              <Text style={[styles.actionSheetTitle, { color: colors.mutedText }]}>Ostoslistan valinnat</Text>
-
-              <Pressable style={styles.actionSheetRow} onPress={handleSyncFromCalendar}>
-                <View style={[styles.actionIconContainer, { backgroundColor: colors.background }]}>
-                  <Ionicons name="refresh-outline" size={20} color={colors.primary} />
                 </View>
-                <View style={styles.actionTextContainer}>
-                  <Text style={[styles.actionRowTitle, { color: colors.text }]}>Päivitä aterioista</Text>
-                  <Text style={[styles.actionRowSubtitle, { color: colors.mutedText }]}>
-                    Tuo ainekset aktiivisesta ateriasuunnitelmasta
-                  </Text>
-                </View>
-              </Pressable>
-
-              <Pressable style={styles.actionSheetRow} onPress={handleShareList}>
-                <View style={[styles.actionIconContainer, { backgroundColor: colors.background }]}>
-                  <Ionicons name="share-outline" size={20} color={colors.primary} />
-                </View>
-                <View style={styles.actionTextContainer}>
-                  <Text style={[styles.actionRowTitle, { color: colors.text }]}>Jaa ostoslista</Text>
-                  <Text style={[styles.actionRowSubtitle, { color: colors.mutedText }]}>
-                    Lähetä lista viestinä tai tallenna muistiinpanoihin
-                  </Text>
-                </View>
-              </Pressable>
+              )}
 
               {checkedItems.length > 0 && (
-                <Pressable style={styles.actionSheetRow} onPress={handleClearCompleted}>
-                  <View style={[styles.actionIconContainer, { backgroundColor: colors.background }]}>
-                    <Ionicons name="checkmark-done-outline" size={20} color={colors.primary} />
-                  </View>
-                  <View style={styles.actionTextContainer}>
-                    <Text style={[styles.actionRowTitle, { color: colors.text }]}>Poista kerätyt tuotteet</Text>
-                    <Text style={[styles.actionRowSubtitle, { color: colors.mutedText }]}>
-                      Poistaa kaikki valmiiksi merkityt ({checkedItems.length} kpl)
-                    </Text>
-                  </View>
-                </Pressable>
-              )}
-
-              {items.length > 0 && (
-                <Pressable style={styles.actionSheetRow} onPress={handleClearAll}>
-                  <View style={[styles.actionIconContainer, { backgroundColor: '#FF3B3015' }]}>
-                    <Ionicons name="trash-outline" size={20} color="#FF3B30" />
-                  </View>
-                  <View style={styles.actionTextContainer}>
-                    <Text style={[styles.actionRowTitle, { color: '#FF3B30' }]}>Tyhjennä koko lista</Text>
-                    <Text style={[styles.actionRowSubtitle, { color: colors.mutedText }]}>
-                      Poistaa kaikki tuotteet ostoslistalta
-                    </Text>
-                  </View>
-                </Pressable>
-              )}
-
-              <Pressable
-                style={[styles.actionSheetCancelBtn, { backgroundColor: colors.background }]}
-                onPress={() => setOptionsMenuVisible(false)}
-              >
-                <Text style={[styles.actionSheetCancelText, { color: colors.text }]}>Sulje</Text>
-              </Pressable>
-            </Animated.View>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal
-        visible={!!editingItem}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setEditingItem(null)}
-      >
-        <View style={styles.modalOverlay}>
-          <Pressable style={styles.modalBackdrop} onPress={() => setEditingItem(null)} />
-          <View style={[styles.dialogCard, { backgroundColor: colors.card }]}>
-            <Text style={[styles.dialogTitle, { color: colors.text }]}>Muokkaa tuotetta</Text>
-
-            <Text style={[styles.inputLabel, { color: colors.mutedText }]}>Tuotteen nimi</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
-              value={editName}
-              onChangeText={setEditName}
-              placeholder="Tuotteen nimi"
-              placeholderTextColor={colors.mutedText}
-            />
-
-            <View style={styles.amountUnitRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.inputLabel, { color: colors.mutedText }]}>Määrä</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
-                  value={editAmount}
-                  onChangeText={setEditAmount}
-                  placeholder="esim. 400"
-                  placeholderTextColor={colors.mutedText}
-                  keyboardType="numeric"
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.inputLabel, { color: colors.mutedText }]}>Yksikkö</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
-                  value={editUnit}
-                  onChangeText={setEditUnit}
-                  placeholder="esim. g, kpl, l"
-                  placeholderTextColor={colors.mutedText}
-                />
-              </View>
-            </View>
-
-            <Text style={[styles.inputLabel, { color: colors.mutedText }]}>Kategoria</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryPickerRow}>
-              {categories.map((catInfo) => {
-                const isSelected = editCategory === catInfo.id;
-                return (
+                <View style={styles.completedSection}>
                   <Pressable
-                    key={catInfo.id}
-                    style={[
-                      styles.categoryPickerChip,
-                      { backgroundColor: isSelected ? colors.primary : colors.background, borderColor: colors.border },
-                    ]}
-                    onPress={() => setEditCategory(catInfo.id)}
+                    style={styles.completedHeader}
+                    onPress={() => setCompletedCollapsed(!completedCollapsed)}
                   >
-                    <Ionicons
-                      name={catInfo.icon as any}
-                      size={13}
-                      color={isSelected ? '#FFFFFF' : colors.text}
-                    />
-                    <Text
-                      style={[
-                        styles.categoryPickerChipText,
-                        { color: isSelected ? '#FFFFFF' : colors.text },
-                        isSelected && { fontWeight: '600' },
-                      ]}
+                    <View style={styles.completedHeaderLeft}>
+                      <Ionicons
+                        name={completedCollapsed ? 'chevron-forward' : 'chevron-down'}
+                        size={18}
+                        color={colors.mutedText}
+                      />
+                      <Text style={[styles.completedTitle, { color: colors.mutedText }]}>
+                        Kerätyt tuotteet ({checkedItems.length})
+                      </Text>
+                    </View>
+                    <Pressable
+                      style={styles.clearCompletedTextBtn}
+                      onPress={handleClearCompleted}
+                      hitSlop={8}
                     >
-                      {catInfo.name}
-                    </Text>
+                      <Text style={[styles.clearCompletedText, { color: '#FF3B30' }]}>Poista kerätyt</Text>
+                    </Pressable>
                   </Pressable>
-                );
-              })}
-            </ScrollView>
 
-            <View style={styles.dialogActions}>
-              <Pressable
-                style={[styles.dialogBtn, { backgroundColor: colors.background }]}
-                onPress={() => setEditingItem(null)}
+                  {!completedCollapsed && (
+                    <View style={[styles.categoryCard, { backgroundColor: colors.card, borderColor: colors.border, opacity: 0.85 }]}>
+                      {checkedItems.map((item, index) => {
+                        const isLast = index === checkedItems.length - 1;
+                        return (
+                          <View
+                            key={item.id}
+                            style={[
+                              styles.itemRow,
+                              !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+                            ]}
+                          >
+                            <Pressable
+                              style={styles.itemCheckboxContainer}
+                              onPress={() => handleToggleCheck(item.id)}
+                              hitSlop={8}
+                            >
+                              <View style={[styles.checkbox, { borderColor: colors.primary, backgroundColor: colors.primary }]}>
+                                <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                              </View>
+                            </Pressable>
+
+                            <Pressable style={styles.itemContent} onPress={() => openEditModal(item)}>
+                              <View style={styles.itemNameRow}>
+                                <Text style={[styles.itemName, styles.itemNameChecked, { color: colors.mutedText }]} numberOfLines={1}>
+                                  {item.name}
+                                </Text>
+                                {item.amount ? (
+                                  <Text style={[styles.itemAmount, { color: colors.mutedText }]}>
+                                    {item.amount} {item.unit || ''}
+                                  </Text>
+                                ) : null}
+                              </View>
+                            </Pressable>
+
+                            <Pressable
+                              style={styles.itemDeleteBtn}
+                              onPress={() => handleDeleteItem(item.id)}
+                              hitSlop={8}
+                            >
+                              <Ionicons name="trash-outline" size={17} color={colors.mutedText} />
+                            </Pressable>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
+          )}
+        </ScrollView>
+
+        <Modal
+          visible={optionsMenuVisible}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setOptionsMenuVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <Pressable style={styles.modalBackdrop} onPress={() => setOptionsMenuVisible(false)} />
+            <View style={styles.modalFrameContainer} pointerEvents="box-none">
+              <Animated.View
+                style={[
+                  styles.actionSheet,
+                  { backgroundColor: colors.card, transform: [{ translateY: optionsPanY }] },
+                ]}
               >
-                <Text style={[styles.dialogBtnText, { color: colors.text }]}>Peruuta</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.dialogBtn, { backgroundColor: colors.primary }]}
-                onPress={handleSaveEdit}
-              >
-                <Text style={[styles.dialogBtnText, { color: '#FFFFFF' }]}>Tallenna</Text>
-              </Pressable>
+                <View style={styles.dragHandleArea} {...optionsPanResponder.panHandlers}>
+                  <View style={styles.modalHandle} />
+                </View>
+                <Text style={[styles.actionSheetTitle, { color: colors.mutedText }]}>Ostoslistan valinnat</Text>
+
+                <Pressable
+                  style={styles.actionSheetRow}
+                  onPress={() => {
+                    setOptionsMenuVisible(false);
+                    setHouseholdModalVisible(true);
+                  }}
+                >
+                  <View style={[styles.actionIconContainer, { backgroundColor: colors.background }]}>
+                    <Ionicons name="people-outline" size={20} color={colors.primary} />
+                  </View>
+                  <View style={styles.actionTextContainer}>
+                    <Text style={[styles.actionRowTitle, { color: colors.text }]}>Jaettu talous</Text>
+                    <Text style={[styles.actionRowSubtitle, { color: colors.mutedText }]}>
+                      {household ? `Yhdistetty: ${household.code}` : 'Jaa lista kumppanille tai perheelle'}
+                    </Text>
+                  </View>
+                </Pressable>
+
+                <Pressable style={styles.actionSheetRow} onPress={handleSyncFromCalendar}>
+                  <View style={[styles.actionIconContainer, { backgroundColor: colors.background }]}>
+                    <Ionicons name="refresh-outline" size={20} color={colors.primary} />
+                  </View>
+                  <View style={styles.actionTextContainer}>
+                    <Text style={[styles.actionRowTitle, { color: colors.text }]}>Päivitä aterioista</Text>
+                    <Text style={[styles.actionRowSubtitle, { color: colors.mutedText }]}>
+                      Tuo ainekset aktiivisesta ateriasuunnitelmasta
+                    </Text>
+                  </View>
+                </Pressable>
+
+                <Pressable style={styles.actionSheetRow} onPress={handleShareList}>
+                  <View style={[styles.actionIconContainer, { backgroundColor: colors.background }]}>
+                    <Ionicons name="share-outline" size={20} color={colors.primary} />
+                  </View>
+                  <View style={styles.actionTextContainer}>
+                    <Text style={[styles.actionRowTitle, { color: colors.text }]}>Jaa ostoslista</Text>
+                    <Text style={[styles.actionRowSubtitle, { color: colors.mutedText }]}>
+                      Lähetä lista viestinä tai tallenna muistiinpanoihin
+                    </Text>
+                  </View>
+                </Pressable>
+
+                {checkedItems.length > 0 && (
+                  <Pressable style={styles.actionSheetRow} onPress={handleClearCompleted}>
+                    <View style={[styles.actionIconContainer, { backgroundColor: colors.background }]}>
+                      <Ionicons name="checkmark-done-outline" size={20} color={colors.primary} />
+                    </View>
+                    <View style={styles.actionTextContainer}>
+                      <Text style={[styles.actionRowTitle, { color: colors.text }]}>Poista kerätyt tuotteet</Text>
+                      <Text style={[styles.actionRowSubtitle, { color: colors.mutedText }]}>
+                        Poistaa kaikki valmiiksi merkityt ({checkedItems.length} kpl)
+                      </Text>
+                    </View>
+                  </Pressable>
+                )}
+
+                {items.length > 0 && (
+                  <Pressable style={styles.actionSheetRow} onPress={handleClearAll}>
+                    <View style={[styles.actionIconContainer, { backgroundColor: '#FF3B3015' }]}>
+                      <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+                    </View>
+                    <View style={styles.actionTextContainer}>
+                      <Text style={[styles.actionRowTitle, { color: '#FF3B30' }]}>Tyhjennä koko lista</Text>
+                      <Text style={[styles.actionRowSubtitle, { color: colors.mutedText }]}>
+                        Poistaa kaikki tuotteet ostoslistalta
+                      </Text>
+                    </View>
+                  </Pressable>
+                )}
+
+                <Pressable
+                  style={[styles.actionSheetCancelBtn, { backgroundColor: colors.background }]}
+                  onPress={() => setOptionsMenuVisible(false)}
+                >
+                  <Text style={[styles.actionSheetCancelText, { color: colors.text }]}>Sulje</Text>
+                </Pressable>
+              </Animated.View>
             </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+
+        <Modal
+          visible={!!editingItem}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setEditingItem(null)}
+        >
+          <View style={styles.modalOverlay}>
+            <Pressable style={styles.modalBackdrop} onPress={() => setEditingItem(null)} />
+            <View style={[styles.dialogCard, { backgroundColor: colors.card }]}>
+              <Text style={[styles.dialogTitle, { color: colors.text }]}>Muokkaa tuotetta</Text>
+
+              <Text style={[styles.inputLabel, { color: colors.mutedText }]}>Tuotteen nimi</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                value={editName}
+                onChangeText={setEditName}
+                placeholder="Tuotteen nimi"
+                placeholderTextColor={colors.mutedText}
+              />
+
+              <View style={styles.amountUnitRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.inputLabel, { color: colors.mutedText }]}>Määrä</Text>
+                  <TextInput
+                    style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                    value={editAmount}
+                    onChangeText={setEditAmount}
+                    placeholder="esim. 400"
+                    placeholderTextColor={colors.mutedText}
+                    keyboardType="numeric"
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.inputLabel, { color: colors.mutedText }]}>Yksikkö</Text>
+                  <TextInput
+                    style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                    value={editUnit}
+                    onChangeText={setEditUnit}
+                    placeholder="esim. g, kpl, l"
+                    placeholderTextColor={colors.mutedText}
+                  />
+                </View>
+              </View>
+
+              <Text style={[styles.inputLabel, { color: colors.mutedText }]}>Kategoria</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryPickerRow}>
+                {categories.map((catInfo) => {
+                  const isSelected = editCategory === catInfo.id;
+                  return (
+                    <Pressable
+                      key={catInfo.id}
+                      style={[
+                        styles.categoryPickerChip,
+                        { backgroundColor: isSelected ? colors.primary : colors.background, borderColor: colors.border },
+                      ]}
+                      onPress={() => setEditCategory(catInfo.id)}
+                    >
+                      <Ionicons
+                        name={catInfo.icon as any}
+                        size={13}
+                        color={isSelected ? '#FFFFFF' : colors.text}
+                      />
+                      <Text
+                        style={[
+                          styles.categoryPickerChipText,
+                          { color: isSelected ? '#FFFFFF' : colors.text },
+                          isSelected && { fontWeight: '600' },
+                        ]}
+                      >
+                        {catInfo.name}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+
+              <View style={styles.dialogActions}>
+                <Pressable
+                  style={[styles.dialogBtn, { backgroundColor: colors.background }]}
+                  onPress={() => setEditingItem(null)}
+                >
+                  <Text style={[styles.dialogBtnText, { color: colors.text }]}>Peruuta</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.dialogBtn, { backgroundColor: colors.primary }]}
+                  onPress={handleSaveEdit}
+                >
+                  <Text style={[styles.dialogBtnText, { color: '#FFFFFF' }]}>Tallenna</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        <HouseholdModal
+          visible={householdModalVisible}
+          onClose={() => setHouseholdModalVisible(false)}
+          onHouseholdChanged={loadData}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -873,7 +937,32 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   titleTextContainer: { flex: 1 },
-  title: { fontSize: 28, fontWeight: '700', marginBottom: 6 },
+  titleWithBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 6,
+  },
+  householdBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  onlineDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  householdBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  title: { fontSize: 28, fontWeight: '700' },
   subtitle: { fontSize: 14 },
   headerMoreBtn: {
     width: 36,
